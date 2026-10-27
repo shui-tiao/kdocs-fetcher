@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "金山文档拉取器",
+  "version": "1.0.0",
+  "description": "一键拉取金山文档表格最新一条记录的【内容】",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "获取最新内容"
+  },
+  "options_page": "options.html",
+  "permissions": ["storage", "declarativeNetRequest"],
+  "host_permissions": ["https://www.kdocs.cn/*"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}

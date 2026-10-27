@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>配置 - 金山文档拉取器</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; width: 420px; margin: 24px auto; color: #333; }
+    h1 { font-size: 16px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; margin: 12px 0 4px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
+    button { margin-top: 16px; padding: 8px 20px; font-size: 13px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1557b0; }
+    #status { margin-top: 12px; font-size: 13px; }
+    #status.ok { color: #188038; }
+    #status.err { color: #d93025; }
+    .tip { font-size: 12px; color: #888; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>金山文档连接配置</h1>
+  <label for="webhookUrl">Webhook 链接</label>
+  <input id="webhookUrl" type="text" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../script/.../sync_task">
+  <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>
+  <label for="token">脚本令牌（AirScript-Token）</label>
+  <input id="token" type="password" placeholder="在脚本编辑器中生成的脚本令牌">
+  <button id="save">保存</button>
+  <div id="status"></div>
+  <script src="options.js"></script>
+</body>
+</html>
