@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>配置向导 - 金山文档拉取器</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px 14px 32px; background: #f1f3f4; font-family: "Microsoft YaHei", sans-serif; color: #333; }
+    .wizard { width: 640px; max-width: 100%; margin: 0 auto; }
+    h1 { font-size: 17px; margin: 0 0 10px; }
+    .progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #5f6368; margin-bottom: 14px; }
+    .progress .bar { flex: 1; height: 6px; background: #dadce0; border-radius: 3px; overflow: hidden; }
+    .progress .bar i { display: block; height: 100%; width: 0; background: #1a73e8; transition: width .2s; }
+    .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(60, 64, 67, .15); }
+    .step-head { display: flex; gap: 12px; align-items: flex-start; }
+    .badge { flex: none; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; }
+    h2 { font-size: 15px; margin: 3px 0 0; line-height: 1.5; }
+    .body { margin: 16px 0 0 34px; font-size: 13px; line-height: 1.8; }
+    .body p { margin: 0 0 12px; }
+    .shot-wrap { margin: 16px 0 0 34px; }
+    .shot { display: block; width: 100%; border: 1px solid #dadce0; border-radius: 8px; background: #fff; }
+    .shot-missing { padding: 40px 12px; border: 1px dashed #c7c9cc; border-radius: 8px; text-align: center; font-size: 12px; color: #9aa0a6; }
+    label { display: block; font-size: 13px; margin: 0 0 6px; }
+    input { width: 100%; padding: 9px 10px; font-size: 13px; font-family: inherit; border: 1px solid #dadce0; border-radius: 6px; }
+    input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26, 115, 232, .15); }
+    .tip { font-size: 12px; color: #888; margin-top: 6px; line-height: 1.7; }
+    .summary { font-size: 13px; line-height: 1.9; background: #f8f9fa; border-radius: 8px; padding: 12px 16px; }
+    #error { min-height: 18px; margin-top: 16px; font-size: 12px; color: #d93025; }
+    .actions { display: flex; align-items: center; gap: 10px; }
+    .actions .spacer { flex: 1; }
+    button { font-family: inherit; font-size: 13px; border: none; border-radius: 6px; cursor: pointer; padding: 9px 22px; }
+    button.primary { background: #1a73e8; color: #fff; }
+    button.primary:hover { background: #1557b0; }
+    button.ghost { background: #fff; color: #5f6368; border: 1px solid #dadce0; }
+    button.ghost:hover { background: #f1f3f4; }
+    button.secondary { background: #e8f0fe; color: #1a73e8; padding: 8px 18px; }
+    button.secondary:hover { background: #d2e3fc; }
+    button:disabled { opacity: .45; cursor: default; }
+    .hint { margin-left: 8px; font-size: 12px; color: #188038; }
+    .hint.err { color: #d93025; }
+  </style>
+</head>
+<body>
+  <div class="wizard">
+    <h1>配置向导</h1>
+    <div class="progress">
+      <div class="bar"><i id="bar"></i></div>
+      <span id="stepLabel">第 1 / 6 步</span>
+    </div>
+
+    <div class="card">
+      <section class="step" data-step="1">
+        <div class="step-head"><span class="badge">1</span><h2>打开多维表格的脚本管理</h2></div>
+        <div class="body">
+          <p>前往金山文档，打开你的多维表格，点击右上角「更多」→「脚本」→「AirScript 脚本」→「管理脚本」。</p>
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step1.png" alt="步骤 1 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step1.png）</div>
+        </div>
+      </section>
+
+      <section class="step" data-step="2" hidden>
+        <div class="step-head"><span class="badge">2</span><h2>新建 AirScript 1.0 脚本</h2></div>
+        <div class="body">
+          <p>进入脚本编辑器后，点击「+」旁边的小三角，选择「新建 AirScript 1.0 脚本」。</p>
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step2.png" alt="步骤 2 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step2.png）</div>
+        </div>
+      </section>
+
+      <section class="step" data-step="3" hidden>
+        <div class="step-head"><span class="badge">3</span><h2>粘贴脚本代码</h2></div>
+        <div class="body">
+          <p>删除编辑器里的模板代码，点击下方按钮复制完整脚本，粘贴到脚本编辑器中并保存。</p>
+          <button id="copyCode" class="secondary" type="button">复制代码</button>
+          <span id="copyStatus" class="hint"></span>
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step3.png" alt="步骤 3 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step3.png）</div>
+        </div>
+      </section>
+
+      <section class="step" data-step="4" hidden>
+        <div class="step-head"><span class="badge">4</span><h2>申请脚本令牌</h2></div>
+        <div class="body">
+          <p>在脚本编辑器点击「脚本令牌」，申请一个 API Token，然后把令牌粘贴到下面。</p>
+          <label for="token">脚本令牌（AirScript-Token）</label>
+          <input id="token" type="password" placeholder="粘贴脚本令牌" autocomplete="off" spellcheck="false">
+          <div class="tip">令牌只保存在浏览器本地，只会随请求发送到 www.kdocs.cn。</div>
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step4.png" alt="步骤 4 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step4.png）</div>
+        </div>
+      </section>
+
+      <section class="step" data-step="5" hidden>
+        <div class="step-head"><span class="badge">5</span><h2>复制 Webhook 链接</h2></div>
+        <div class="body">
+          <p>点击左侧的「⋮」（三个点），复制脚本的 Webhook 链接，粘贴到下面。</p>
+          <label for="webhookUrl">Webhook 链接</label>
+          <input id="webhookUrl" type="text" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../sync_task" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step5.png" alt="步骤 5 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step5.png）</div>
+        </div>
+      </section>
+
+      <section class="step" data-step="6" hidden>
+        <div class="step-head"><span class="badge">6</span><h2>完成配置</h2></div>
+        <div class="body">
+          <p>配置已完成，可在扩展设置中设置其他项目（要拉取的字段、最新数据位置、自动复制字段）。</p>
+          <div id="summary" class="summary"></div>
+        </div>
+        <div class="shot-wrap">
+          <img class="shot" src="screenshots/step6.png" alt="步骤 6 截图">
+          <div class="shot-missing" hidden>示意图待补充（screenshots/step6.png）</div>
+        </div>
+      </section>
+
+      <div id="error"></div>
+      <div class="actions">
+        <button id="prev" class="ghost" type="button">上一步</button>
+        <div class="spacer"></div>
+        <button id="next" class="primary" type="button">下一步</button>
+      </div>
+    </div>
+  </div>
+  <script src="wizard.js"></script>
+</body>
+</html>

@@ -22,10 +22,19 @@
     .tip { font-size: 12px; color: #888; margin-top: 4px; }
     .radio { display: block; font-size: 13px; margin: 4px 0; }
     .radio input { width: auto; margin-right: 6px; }
+    .guide { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 14px; background: #e8f0fe; border-radius: 8px; }
+    .guide .text { flex: 1; font-size: 12px; line-height: 1.7; color: #444; }
+    .guide .text b { display: block; font-size: 13px; color: #1a73e8; }
+    .guide button { flex: none; margin-top: 0; padding: 7px 14px; background: #1a73e8; }
+    .guide button:hover { background: #1557b0; }
   </style>
 </head>
 <body>
   <h1>金山文档连接配置</h1>
+  <div class="guide">
+    <div class="text"><b>首次配置？</b>跟随 6 步向导完成脚本部署与连接配置</div>
+    <button id="openWizard" type="button">打开配置向导</button>
+  </div>
   <label for="webhookUrl">Webhook 链接</label>
   <input id="webhookUrl" type="text" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../script/.../sync_task">
   <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>

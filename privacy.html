@@ -144,7 +144,6 @@
 <header>
   <h1>隐私政策</h1>
   <p>金山文档拉取器 · Chrome / Edge 浏览器扩展</p>
-  <div class="badge">最后更新：2026 年 10 月 28 日</div>
 </header>
 
 <main>
@@ -222,8 +221,7 @@
   <div class="card">
     <h2>四、扩展权限说明</h2>
     <p>
-      安装本扩展时，Chrome / Edge 会用通俗语句列出它申请的权限。部分提示文字（例如"阻止任何页面上的内容"）
-      容易让人误以为扩展会干扰网页，特此逐项说明本扩展的实际用途：
+      安装本扩展时，您的浏览器会列出它申请的权限。向您说明本扩展的实际用途：
     </p>
     <table class="table">
       <thead><tr><th>权限</th><th>浏览器提示</th><th>实际用途</th></tr></thead>
@@ -231,35 +229,21 @@
         <tr>
           <td><code>storage</code></td>
           <td>读取和更改您在本扩展中的数据</td>
-          <td>仅保存 Webhook 地址、令牌、字段列表等本地配置（见第二节）。</td>
+          <td>仅保存 Webhook 地址、令牌、字段列表等本地配置。</td>
         </tr>
         <tr>
           <td><code>declarativeNetRequest</code></td>
           <td>阻止任何页面上的内容</td>
-          <td>仅用于修改发往金山文档接口的请求头，<b>不拦截、不读取、不修改任何网页内容</b>（详见下方说明）。</td>
+          <td>仅用于修改发往金山文档接口的请求头使其符合规范</td>
         </tr>
         <tr>
           <td><code>host_permissions</code><br>（<code>https://www.kdocs.cn/*</code>）</td>
           <td>读取和更改 www.kdocs.cn 上的数据</td>
-          <td>仅允许向金山文档 Webhook 发起 HTTPS 请求，无法访问其他网站。</td>
+          <td>仅用于向金山文档 Webhook 发起 HTTPS 请求，无法访问其他网站。</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>关于"阻止任何页面上的内容"</h3>
-    <p>
-      该提示由 <code>declarativeNetRequest</code> 权限触发。本扩展的规则文件
-      （<code>rules.json</code>）中<strong>只有一条规则</strong>，作用是：
-    </p>
-    <ul>
-      <li>仅匹配 <code>www.kdocs.cn/api/v3/ide/</code> 下的 XMLHttpRequest 请求；</li>
-      <li>把该请求的 <code>Origin</code> 请求头设置为 <code>https://www.kdocs.cn</code>。</li>
-    </ul>
-    <p>
-      这样做的原因是：从扩展弹窗直接请求金山文档 Webhook 时，浏览器会把 <code>Origin</code> 标记为
-      <code>chrome-extension://…</code>，金山文档服务端的跨域校验会拒绝该请求；调整这一个请求头即可让
-      用户自己配置的 Webhook 正常返回数据。
-    </p>
     <div class="highlight">
       <p>本扩展没有添加任何 block、redirect、allow 等拦截规则，不会屏蔽任何网站的请求、广告或页面元素，
          也不会读取或修改任何网页的 DOM 内容。该权限全部作用范围仅限于上述金山文档接口的请求头。</p>
@@ -285,55 +269,31 @@
     <p>本扩展依赖以下第三方服务来完成核心功能，请注意阅读它们各自的隐私政策：</p>
     <ul>
       <li>
-        <b>金山文档（WPS Office）</b>
-        —— 用户配置的 Webhook 运行在金山文档的云端脚本编辑器中。
-        请查阅 <a href="https://www.kdocs.cn/privacy" target="_blank" rel="noopener">WPS 隐私政策</a>。
+        <b>金山文档</b>
+        请查阅 <a href="https://www.kdocs.cn/privacy" target="_blank" rel="noopener">金山文档隐私政策</a>。
       </li>
       <li>
-        <b>Chrome / Edge 浏览器</b>
-        —— 本地存储、剪贴板访问均通过浏览器原生 API 完成。
+        <b>您的浏览器</b>
       </li>
     </ul>
     <p>本扩展<strong>不与上述第三方共享任何额外信息</strong>，仅向金山 Webhook 发送必要的字段名参数。</p>
   </div>
 
-  <div class="card">
-    <h2>七、未成年人保护</h2>
-    <p>
-      本扩展未面向 13 岁以下的未成年人设计。我们不会有意收集未成年人的个人信息。
-      但本扩展实际上只存储用户主动填入的工作相关配置，且不执行任何年龄识别逻辑。
-      若您是家长或监护人，请根据实际情况决定是否允许使用。
-    </p>
-  </div>
 
   <div class="card">
-    <h2>八、隐私政策的变更</h2>
+    <h2>联系我们</h2>
     <p>
-      若本隐私政策发生变更，我们会：
+      请通过以下方式联系：
     </p>
     <ul>
-      <li>在本页面顶部更新"最后更新"日期</li>
-      <li>在扩展的版本更新日志中说明变更内容</li>
-      <li>重大变更时（如开始收集任何新信息），会在下一版本的扩展弹窗中主动提示用户</li>
+      <li>📧 邮箱：<a href="mailto:shuitiao@qq.com">shuitiao@qq.com</a></li>
     </ul>
-  </div>
-
-  <div class="card">
-    <h2>九、联系我们</h2>
-    <p>
-      若您对本扩展或本隐私政策有任何疑问、意见或建议，请通过以下方式联系：
-    </p>
-    <ul>
-      <li>📧 邮箱：<a href="mailto:your-email@example.com">your-email@example.com</a></li>
-      <li>💬 GitHub Issues：<a href="https://github.com/your-repo/issues" target="_blank" rel="noopener">github.com/your-repo/issues</a></li>
-    </ul>
-    <p>我们会在 3 个工作日内回复。</p>
   </div>
 
 </main>
 
 <footer>
-  <p>© 2026 金山文档拉取器 · 本扩展遵循 Chrome Web Store 和 Microsoft Edge Add-ons 的开发者条款</p>
+  <p>© 2026 shuitiao · 本扩展遵循 Chrome Web Store 和 Microsoft Edge Add-ons 的开发者条款</p>
 </footer>
 
 </body>

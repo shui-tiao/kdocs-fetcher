@@ -24,11 +24,13 @@ popup ◀── { data: { result: { ok, fields: [{name, value, row}] } } } ─�
 ## 目录结构
 
 ```
-├─ air.js                 # 金山文档脚本（部署到金山脚本编辑器）
 ├─ extension/
 │  ├─ manifest.json       # MV3 清单（storage + declarativeNetRequest + kdocs host）
+│  ├─ air.js              # 金山文档脚本（部署到金山脚本编辑器，向导可一键复制）
 │  ├─ popup.html/.js      # 点击即拉取：加载中 → 内容/错误，复制按钮，10s 超时
 │  ├─ options.html/.js    # 配置页：webhook 链接 + 脚本令牌 + 要拉取的字段列表（chrome.storage.local）
+│  ├─ wizard.html/.js     # 配置向导：6 步引导部署与连接
+│  ├─ screenshots/        # 向导每一步的截图（step1.png … step6.png）
 │  └─ rules.json          # DNR 规则：改写 Origin 头
 ├─ spec.md                # SDD 功能规格（含实测接口契约）
 ├─ checklist.md           # 质量/验收清单
@@ -39,7 +41,7 @@ popup ◀── { data: { result: { ok, fields: [{name, value, row}] } } } ─�
 
 ### 1. 金山文档侧（air.js）
 
-1. 打开目标电子表格 → 脚本编辑器 → 新建脚本，粘贴 `air.js` 全部内容
+1. 打开目标电子表格 → 脚本编辑器 → 新建脚本，粘贴 `extension/air.js` 全部内容
 2. 侧边栏脚本「更多菜单」→ 复制 **webhook 链接**（形如 `https://www.kdocs.cn/api/v3/ide/file/<file_id>/script/<script_id>/sync_task`）
 3. 生成**脚本令牌**（AirScript-Token）
 

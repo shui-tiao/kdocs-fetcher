@@ -83,6 +83,20 @@ chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyFie
   refreshAutoCopyOptions()
 })
 
+document.getElementById('openWizard').addEventListener('click', () => {
+  chrome.windows.create({
+    url: chrome.runtime.getURL('wizard.html'),
+    type: 'popup',
+    width: 560,
+    height: 760
+  })
+})
+
+// 向导完成后刷新本页，避免页面上旧的令牌/链接覆盖新配置
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.type === 'config-updated') location.reload()
+})
+
 document.getElementById('addField').addEventListener('click', () => {
   fieldListEl.appendChild(createFieldRow(''))
   refreshAutoCopyOptions()
