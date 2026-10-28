@@ -1,0 +1,11 @@
+{
+  "appName": {
+    "message": "Kingsoft Docs Fetcher"
+  },
+  "appDesc": {
+    "message": "Fetch the latest record of specified fields from a Kingsoft Docs spreadsheet in one click"
+  },
+  "actionTitle": {
+    "message": "Fetch latest record"
+  }
+}

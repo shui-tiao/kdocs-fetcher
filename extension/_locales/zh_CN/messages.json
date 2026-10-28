@@ -1,0 +1,11 @@
+{
+  "appName": {
+    "message": "金山文档拉取器"
+  },
+  "appDesc": {
+    "message": "一键拉取金山文档表格中指定字段的最新记录"
+  },
+  "actionTitle": {
+    "message": "获取最新记录"
+  }
+}
