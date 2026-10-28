@@ -10,10 +10,18 @@
     input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
     button { margin-top: 16px; padding: 8px 20px; font-size: 13px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #1557b0; }
+    .field-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .field-row input { flex: 1; }
+    .field-row .del { flex-shrink: 0; margin-top: 0; padding: 8px 12px; background: #f1f3f4; color: #333; }
+    .field-row .del:hover { background: #e2e5e7; }
+    #addField { margin-top: 4px; padding: 6px 14px; background: #f1f3f4; color: #333; }
+    #addField:hover { background: #e2e5e7; }
     #status { margin-top: 12px; font-size: 13px; }
     #status.ok { color: #188038; }
     #status.err { color: #d93025; }
     .tip { font-size: 12px; color: #888; margin-top: 4px; }
+    .radio { display: block; font-size: 13px; margin: 4px 0; }
+    .radio input { width: auto; margin-right: 6px; }
   </style>
 </head>
 <body>
@@ -23,6 +31,13 @@
   <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>
   <label for="token">脚本令牌（AirScript-Token）</label>
   <input id="token" type="password" placeholder="在脚本编辑器中生成的脚本令牌">
+  <label>要拉取的字段</label>
+  <div id="fieldList"></div>
+  <button id="addField" type="button">+ 添加字段</button>
+  <div class="tip">多维表格直接填字段名（如「内容」「机构」），调整列顺序/视图排序均不影响；电子表格无表头行时填「显示名=列字母」，如 机构=E；日期字段加 :date 转可读时间，如 日期:date；可添加多个字段</div>
+  <label>最新一条数据的位置</label>
+  <label class="radio"><input type="radio" name="order" value="bottom">表格底部（默认，数据按时间追加在末尾）</label>
+  <label class="radio"><input type="radio" name="order" value="top">表格顶部（开启了按时间倒序自动排序时选此项）</label>
   <button id="save">保存</button>
   <div id="status"></div>
   <script src="options.js"></script>

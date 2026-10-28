@@ -1,38 +1,74 @@
-const contentEl = document.getElementById('content')
-const metaEl = document.getElementById('meta')
+const fieldsEl = document.getElementById('fields')
+const statusEl = document.getElementById('status')
 const copyBtn = document.getElementById('copy')
 const refreshBtn = document.getElementById('refresh')
 const openOptionsBtn = document.getElementById('openOptions')
 
 const TIMEOUT_MS = 10000
 
+let copyText = ''
+
 function showError(msg) {
-  contentEl.className = 'error'
-  contentEl.textContent = msg
-  metaEl.textContent = ''
+  statusEl.className = 'error'
+  statusEl.textContent = msg
+  statusEl.classList.remove('hidden')
+  fieldsEl.innerHTML = ''
   copyBtn.disabled = true
 }
 
-function showContent(content, row) {
-  contentEl.className = ''
-  contentEl.textContent = content
-  metaEl.textContent = '表格行号：' + row
-  copyBtn.disabled = false
+function renderFields(list) {
+  fieldsEl.innerHTML = ''
+  const lines = []
+  let valueCount = 0
+  for (const f of list) {
+    const card = document.createElement('div')
+    card.className = 'field'
+
+    const name = document.createElement('div')
+    name.className = 'field-name'
+    const info = []
+    if (f.col) info.push(f.col + ' 列')
+    if (f.row) info.push('行 ' + f.row)
+    name.textContent = info.length ? f.name + '（' + info.join('，') + '）' : f.name
+
+    const value = document.createElement('div')
+    if (f.error) {
+      value.className = 'field-value error'
+      value.textContent = f.error
+    } else {
+      value.className = 'field-value'
+      value.textContent = f.value
+      lines.push(list.length > 1 ? f.name + '：' + f.value : f.value)
+      valueCount++
+    }
+
+    card.appendChild(name)
+    card.appendChild(value)
+    fieldsEl.appendChild(card)
+  }
+  statusEl.classList.add('hidden')
+  copyText = lines.join('\n')
+  copyBtn.disabled = valueCount === 0
 }
 
 async function fetchLatest() {
-  contentEl.className = 'loading'
-  contentEl.textContent = '加载中…'
-  metaEl.textContent = ''
+  fieldsEl.innerHTML = ''
+  statusEl.className = 'loading'
+  statusEl.textContent = '加载中…'
+  statusEl.classList.remove('hidden')
   copyBtn.disabled = true
 
-  const cfg = await chrome.storage.local.get(['webhookUrl', 'token'])
+  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order'])
   if (!cfg.webhookUrl || !cfg.token) {
     showError('尚未配置 Webhook 链接或脚本令牌')
     openOptionsBtn.classList.remove('hidden')
     return
   }
   openOptionsBtn.classList.add('hidden')
+
+  const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
+  const order = cfg.order === 'top' ? 'top' : 'bottom'
+  const argv = { fields, order }
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -45,7 +81,7 @@ async function fetchLatest() {
         'Content-Type': 'application/json',
         'AirScript-Token': cfg.token
       },
-      body: '{}',
+      body: JSON.stringify({ Context: { argv } }),
       signal: controller.signal
     })
   } catch (e) {
@@ -82,12 +118,19 @@ async function fetchLatest() {
     showError(result.error || '脚本返回失败')
     return
   }
+  if (!Array.isArray(result.fields) || result.v !== 11) {
+    showError('金山文档中的脚本版本过旧，请将最新 air.js 重新部署到脚本编辑器')
+    return
+  }
 
-  showContent(result.content, result.row)
+  renderFields(result.fields)
+  statusEl.className = 'loading'
+  statusEl.textContent = result.mode === 'data_table' ? '多维表格模式' : '电子表格模式'
+  statusEl.classList.remove('hidden')
 }
 
 copyBtn.addEventListener('click', async () => {
-  await navigator.clipboard.writeText(contentEl.textContent)
+  await navigator.clipboard.writeText(copyText)
   copyBtn.textContent = '已复制'
   setTimeout(() => { copyBtn.textContent = '复制' }, 1500)
 })
