@@ -5,9 +5,12 @@
   <style>
     body { font-family: "Microsoft YaHei", sans-serif; width: 340px; margin: 0; padding: 16px; color: #333; }
     h1 { font-size: 14px; margin: 0 0 12px; }
-    .field { margin-bottom: 10px; }
-    .field-name { font-size: 12px; color: #999; margin-bottom: 4px; }
+    .field { margin-bottom: 10px; position: relative; }
+    .field-name { font-size: 12px; color: #999; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
     .field-value { font-size: 13px; line-height: 1.7; word-break: break-all; white-space: pre-wrap; background: #f6f8fa; border-radius: 6px; padding: 12px; min-height: 20px; }
+    .copy-field { font-size: 11px; padding: 2px 8px; border: 1px solid #dadce0; border-radius: 3px; background: #fff; color: #5f6368; cursor: pointer; flex: none; width: auto; }
+    .copy-field:hover { background: #f1f3f4; color: #1a73e8; border-color: #1a73e8; }
+    .copy-field.copied { background: #e6f4ea; color: #137333; border-color: #137333; }
     .field-value.error { color: #d93025; background: #fce8e6; }
     #status { font-size: 13px; line-height: 1.7; background: #f6f8fa; border-radius: 6px; padding: 12px; min-height: 40px; }
     #status.loading { color: #888; }
@@ -28,7 +31,7 @@
   <div id="fields"></div>
   <div id="status" class="loading">加载中…</div>
   <div id="actions">
-    <button id="copy" disabled>复制</button>
+    <button id="copy" disabled>全部复制</button>
     <button id="refresh">重新获取</button>
   </div>
   <button id="openOptions" class="hidden">前往配置</button>

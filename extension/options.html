@@ -7,7 +7,7 @@
     body { font-family: "Microsoft YaHei", sans-serif; width: 420px; margin: 24px auto; color: #333; }
     h1 { font-size: 16px; margin-bottom: 16px; }
     label { display: block; font-size: 13px; margin: 12px 0 4px; }
-    input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
+    input, select { width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
     button { margin-top: 16px; padding: 8px 20px; font-size: 13px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #1557b0; }
     .field-row { display: flex; gap: 8px; margin-bottom: 8px; }
@@ -38,6 +38,9 @@
   <label>最新一条数据的位置</label>
   <label class="radio"><input type="radio" name="order" value="bottom">表格底部（默认，数据按时间追加在末尾）</label>
   <label class="radio"><input type="radio" name="order" value="top">表格顶部（开启了按时间倒序自动排序时选此项）</label>
+  <label for="autoCopyField">自动复制字段</label>
+  <select id="autoCopyField"></select>
+  <div class="tip">选择后，点击拓展图标获取数据时会自动把该字段内容复制到剪贴板</div>
   <button id="save">保存</button>
   <div id="status"></div>
   <script src="options.js"></script>

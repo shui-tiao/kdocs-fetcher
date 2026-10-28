@@ -16,10 +16,29 @@ function showError(msg) {
   copyBtn.disabled = true
 }
 
-function renderFields(list) {
+async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true } catch (_) {}
+  }
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  const ok = document.execCommand('copy')
+  document.body.removeChild(ta)
+  return ok
+}
+
+async function renderFields(list, autoCopyField) {
   fieldsEl.innerHTML = ''
   const lines = []
   let valueCount = 0
+  let matchedCopyBtn = null
+  let matchedValue = ''
+  const autoBase = autoCopyField ? autoCopyField.split('=')[0].split(':')[0].trim() : ''
+
   for (const f of list) {
     const card = document.createElement('div')
     card.className = 'field'
@@ -29,7 +48,9 @@ function renderFields(list) {
     const info = []
     if (f.col) info.push(f.col + ' 列')
     if (f.row) info.push('行 ' + f.row)
-    name.textContent = info.length ? f.name + '（' + info.join('，') + '）' : f.name
+    const nameLabel = document.createElement('span')
+    nameLabel.textContent = info.length ? f.name + '（' + info.join('，') + '）' : f.name
+    name.appendChild(nameLabel)
 
     const value = document.createElement('div')
     if (f.error) {
@@ -40,6 +61,30 @@ function renderFields(list) {
       value.textContent = f.value
       lines.push(list.length > 1 ? f.name + '：' + f.value : f.value)
       valueCount++
+
+      const copyFieldBtn = document.createElement('button')
+      copyFieldBtn.className = 'copy-field'
+      copyFieldBtn.textContent = '复制'
+      copyFieldBtn.addEventListener('click', async () => {
+        const ok = await copyToClipboard(f.value)
+        if (ok) {
+          copyFieldBtn.textContent = '已复制'
+          copyFieldBtn.classList.add('copied')
+          setTimeout(() => {
+            copyFieldBtn.textContent = '复制'
+            copyFieldBtn.classList.remove('copied')
+          }, 1500)
+        } else {
+          copyFieldBtn.textContent = '复制失败'
+          setTimeout(() => { copyFieldBtn.textContent = '复制' }, 1500)
+        }
+      })
+      name.appendChild(copyFieldBtn)
+
+      if (autoBase && (f.name === autoBase || autoCopyField === f.name || autoCopyField === f.raw)) {
+        matchedCopyBtn = copyFieldBtn
+        matchedValue = f.value
+      }
     }
 
     card.appendChild(name)
@@ -49,6 +94,18 @@ function renderFields(list) {
   statusEl.classList.add('hidden')
   copyText = lines.join('\n')
   copyBtn.disabled = valueCount === 0
+
+  if (matchedCopyBtn && matchedValue) {
+    const ok = await copyToClipboard(matchedValue)
+    if (ok) {
+      matchedCopyBtn.textContent = '已复制'
+      matchedCopyBtn.classList.add('copied')
+      setTimeout(() => {
+        matchedCopyBtn.textContent = '复制'
+        matchedCopyBtn.classList.remove('copied')
+      }, 3000)
+    }
+  }
 }
 
 async function fetchLatest() {
@@ -58,7 +115,7 @@ async function fetchLatest() {
   statusEl.classList.remove('hidden')
   copyBtn.disabled = true
 
-  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order'])
+  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyField'])
   if (!cfg.webhookUrl || !cfg.token) {
     showError('尚未配置 Webhook 链接或脚本令牌')
     openOptionsBtn.classList.remove('hidden')
@@ -123,7 +180,7 @@ async function fetchLatest() {
     return
   }
 
-  renderFields(result.fields)
+  await renderFields(result.fields, cfg.autoCopyField || '')
   statusEl.className = 'loading'
   statusEl.textContent = result.mode === 'data_table' ? '多维表格模式' : '电子表格模式'
   statusEl.classList.remove('hidden')

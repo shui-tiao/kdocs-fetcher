@@ -3,9 +3,19 @@
   "name": "金山文档拉取器",
   "version": "1.0.0",
   "description": "一键拉取金山文档表格中指定字段的最新记录",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "获取最新记录"
+    "default_title": "获取最新记录",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
   "options_page": "options.html",
   "permissions": ["storage", "declarativeNetRequest"],
