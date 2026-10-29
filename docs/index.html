@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金山文档拉取器 — 一点就是最新数据 · Edge 扩展</title>
+  <meta name="description" content="金山文档拉取器：点击浏览器图标，即把金山文档多维表格 / 电子表格中指定字段的最新记录送到剪贴板。免费、直连 kdocs.cn、数据不出你的账号。立即前往 Edge 商店安装。">
+  <meta name="theme-color" content="#F7F4EC">
+  <meta property="og:title" content="金山文档拉取器 — 一点就是最新数据">
+  <meta property="og:description" content="点击浏览器图标，金山文档表格的最新记录即刻到达剪贴板。免费 Edge 扩展，5 分钟完成配置。">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232262E8'/%3E%3Crect x='13' y='13' width='30' height='32' rx='3' fill='%23fff'/%3E%3Cpath d='M13 24h30M23 13v32M33 13v32' stroke='%232262E8' stroke-width='2.5'/%3E%3Cpath d='M44 36l9 16H35z' fill='%236FB6F2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.loli.net">
+  <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+  <link href="https://fonts.loli.net/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #F7F4EC;
+      --card: #FFFFFF;
+      --ink: #182430;
+      --ink-2: #22303D;
+      --muted: #5B6B77;
+      --faint: #8A97A1;
+      --line: #E5E0D0;
+      --grid: rgba(24, 36, 48, .05);
+      --blue: #2262E8;
+      --blue-deep: #1B4FC4;
+      --blue-soft: #E3EDFF;
+      --cyan: #6FB6F2;
+      --green: #148A54;
+      --green-soft: #E1F4E8;
+      --dark: #131F29;
+      --serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+      --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      --shadow: 0 1px 2px rgba(24, 36, 48, .06), 0 12px 32px -12px rgba(24, 36, 48, .18);
+      --shadow-lift: 0 2px 4px rgba(24, 36, 48, .07), 0 20px 44px -14px rgba(24, 36, 48, .26);
+      --cycle: 9s;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    ::selection { background: var(--blue); color: #fff; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
+
+    /* ---- 纸面网格 + 噪点 ---- */
+    .bg {
+      position: fixed; inset: 0; z-index: -2; pointer-events: none;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .bg::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(1100px 520px at 78% -8%, rgba(34, 98, 232, .10), transparent 62%),
+                  radial-gradient(760px 420px at -10% 30%, rgba(111, 182, 242, .12), transparent 60%);
+    }
+    .grain {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+    /* ---- 通用组件 ---- */
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 13px 24px; border-radius: 10px; border: 1px solid transparent;
+      font: 600 15px/1 var(--sans); text-decoration: none; cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+      white-space: nowrap;
+    }
+    .btn svg { width: 18px; height: 18px; flex: none; }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 10px 24px -8px rgba(34, 98, 232, .55); }
+    .btn-primary:hover { background: var(--blue-deep); transform: translateY(-2px); box-shadow: 0 14px 30px -8px rgba(27, 79, 196, .6); }
+    .btn-ghost { background: transparent; color: var(--ink); border-color: #C9C3B2; }
+    .btn-ghost:hover { border-color: var(--ink); background: rgba(255,255,255,.6); transform: translateY(-2px); }
+    .btn-light { background: #fff; color: var(--ink); }
+    .btn-light:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -10px rgba(0,0,0,.5); }
+
+    .kicker {
+      display: inline-flex; align-items: center; gap: 12px;
+      font: 600 12px/1 var(--mono); letter-spacing: .22em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .kicker::before { content: ""; width: 34px; height: 1px; background: var(--blue); }
+    .kicker b { color: var(--blue); font-weight: 600; }
+
+    section { scroll-margin-top: 86px; }
+    .section { padding: 96px 0 30px; }
+    .section-head { max-width: 640px; margin-bottom: 46px; }
+    .section-head h2 {
+      font: 900 clamp(28px, 4vw, 40px)/1.3 var(--serif);
+      margin: 14px 0 12px; letter-spacing: .01em;
+    }
+    .section-head h2 em { font-style: normal; color: var(--blue); }
+    .section-head p { margin: 0; color: var(--muted); }
+
+    /* ---- 导航 ---- */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(247, 244, 236, .82);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner { display: flex; align-items: center; gap: 30px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+    .brand svg { width: 30px; height: 30px; flex: none; }
+    .brand .name { font: 700 16px/1.2 var(--serif); letter-spacing: .02em; }
+    .brand .name small { display: block; font: 600 10px/1 var(--mono); letter-spacing: .18em; color: var(--faint); margin-top: 3px; }
+    .nav-links { display: flex; gap: 26px; margin-left: auto; }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav .btn { padding: 9px 16px; font-size: 13.5px; border-radius: 8px; }
+    @media (max-width: 900px) { .nav-links { display: none; } .nav-inner .btn { margin-left: auto; } }
+
+    /* ---- Hero ---- */
+    .hero { padding: 76px 0 60px; }
+    .hero-grid { display: grid; grid-template-columns: 1.04fr .96fr; gap: 56px; align-items: center; }
+    @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; gap: 48px; } }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid #D8D2C0; border-radius: 999px;
+      background: rgba(255,255,255,.7);
+      font: 600 12.5px/1.5 var(--sans); color: var(--ink-2);
+      animation: rise .7s .05s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(20, 138, 84, .16); }
+    .hero h1 {
+      font: 900 clamp(38px, 5.4vw, 64px)/1.22 var(--serif);
+      margin: 22px 0 20px; letter-spacing: .01em;
+      animation: rise .7s .14s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .hero h1 .u {
+      position: relative; color: var(--blue); white-space: nowrap;
+    }
+    .hero h1 .u::after {
+      content: ""; position: absolute; left: 2%; right: 2%; bottom: .04em; height: .16em;
+      background: var(--blue-soft); z-index: -1; border-radius: 3px;
+    }
+    .hero .lead {
+      font-size: 17px; color: var(--muted); max-width: 33em; margin: 0 0 30px;
+      animation: rise .7s .22s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .hero .lead b { color: var(--ink); font-weight: 600; }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; animation: rise .7s .3s cubic-bezier(.2,.7,.2,1) both; }
+    .hero-ctas .btn svg { width: 19px; height: 19px; }
+    .hero-meta {
+      display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 26px;
+      font: 500 12.5px/1.6 var(--mono); color: var(--faint);
+      animation: rise .7s .38s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-meta span::before { content: "▪"; color: var(--cyan); font-size: 9px; }
+    @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+    .hero-scenes {
+      margin-top: 34px; padding-top: 18px; border-top: 1px dashed #D8D2C0;
+      font: 500 12.5px/2 var(--mono); color: var(--faint);
+      animation: rise .7s .46s cubic-bezier(.2,.7,.2,1) both;
+    }
+    .hero-scenes b { color: var(--muted); font-weight: 600; margin-right: 10px; }
+    .hero-scenes i { font-style: normal; margin-right: 14px; white-space: nowrap; }
+    .hero-scenes i::before { content: "# "; color: var(--blue); }
+
+    /* ---- Hero 演示舞台 ---- */
+    .stage { position: relative; animation: rise .8s .25s cubic-bezier(.2,.7,.2,1) both; }
+    .window {
+      background: var(--card); border: 1px solid #E2DCCB; border-radius: 14px;
+      box-shadow: var(--shadow-lift); overflow: hidden;
+    }
+    .win-bar {
+      display: flex; align-items: center; gap: 8px; padding: 11px 14px;
+      border-bottom: 1px solid #EEE9DB; background: #FBFAF5;
+    }
+    .win-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: #DDD6C4; }
+    .win-bar .dot:nth-child(1) { background: #F0B4A4; } .win-bar .dot:nth-child(2) { background: #F2D69B; } .win-bar .dot:nth-child(3) { background: #A8D8B4; }
+    .addr {
+      flex: 1; margin-left: 8px; padding: 5px 12px; border-radius: 7px;
+      background: #F1EEE3; border: 1px solid #E7E2D2;
+      font: 500 11px/1.6 var(--mono); color: var(--muted);
+      display: flex; align-items: center; gap: 6px; min-width: 0;
+    }
+    .addr svg { width: 10px; height: 10px; flex: none; color: var(--green); }
+    .addr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* 扩展图标按钮（右上角） */
+    .ext-btn {
+      position: absolute; top: 9px; right: 12px; z-index: 6;
+      width: 26px; height: 26px; border-radius: 7px; background: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(34, 98, 232, .4);
+    }
+    .ext-btn svg { width: 16px; height: 16px; }
+    .ext-btn::after {
+      content: ""; position: absolute; inset: 0; border-radius: 7px;
+      border: 2px solid var(--blue); opacity: 0;
+      animation: ping var(--cycle) 74% ease-out;
+    }
+    @keyframes ping { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(2.1); } }
+
+    .sheet { position: relative; padding: 16px 16px 20px; }
+    .sheet-title {
+      display: flex; align-items: baseline; gap: 10px; padding: 2px 4px 12px;
+    }
+    .sheet-title .t { font: 700 14.5px/1.4 var(--serif); }
+    .sheet-title .s { font: 500 10.5px/1.6 var(--mono); color: var(--faint); }
+    .sheet-head {
+      display: grid; grid-template-columns: 1.1fr 1.6fr 1fr; gap: 8px; margin-bottom: 8px;
+    }
+    .sheet-head div {
+      font: 600 11px/1 var(--mono); color: var(--faint); letter-spacing: .08em;
+      padding: 7px 10px; background: #F4F1E6; border-radius: 6px; border: 1px solid #ECE7D8;
+    }
+    .rows { position: relative; display: flex; flex-direction: column; gap: 8px; }
+    .row {
+      display: grid; grid-template-columns: 1.1fr 1.6fr 1fr; gap: 8px;
+      position: relative; z-index: 2;
+    }
+    .row div {
+      padding: 12px 10px; border-radius: 6px; border: 1px solid #ECE7D8; background: #fff;
+      font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .row div:first-child { font-weight: 600; }
+    .row.latest div { background: var(--blue-soft); border-color: #BFD2FF; color: var(--blue-deep); }
+    .row.latest .tag {
+      position: absolute; top: -9px; right: 8px; z-index: 3;
+      padding: 2px 9px; border-radius: 999px; background: var(--blue); color: #fff;
+      font: 600 10px/1.5 var(--sans); letter-spacing: .06em;
+      box-shadow: 0 3px 8px rgba(34, 98, 232, .35);
+    }
+    .scan {
+      position: absolute; left: 0; right: 0; top: 6px; height: 46px; z-index: 3;
+      pointer-events: none;
+      border-radius: 8px; border: 2px solid var(--blue);
+      box-shadow: 0 0 0 4px rgba(34, 98, 232, .12), 0 6px 16px -6px rgba(34, 98, 232, .5);
+      animation: scan var(--cycle) cubic-bezier(.45,.05,.35,1) infinite;
+    }
+    @keyframes scan {
+      0%   { top: 0; opacity: 1; }
+      9%   { top: 0; opacity: 1; }
+      14%  { top: 54px; }
+      23%  { top: 54px; }
+      28%  { top: 108px; }
+      37%  { top: 108px; }
+      42%  { top: 162px; opacity: 1; }
+      60%  { top: 162px; opacity: 1; }
+      72%  { top: 162px; opacity: 1; }
+      86%  { top: 162px; opacity: 1; }
+      94%  { top: 162px; opacity: 0; }
+      100% { top: 0; opacity: 0; }
+    }
+    .fly {
+      position: absolute; z-index: 8; top: 20px; right: 21px;
+      width: 9px; height: 9px; border-radius: 50%; background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(34, 98, 232, .2);
+      opacity: 0; animation: fly var(--cycle) ease-in-out infinite;
+    }
+    @keyframes fly {
+      0%, 58% { opacity: 0; transform: translate(0, 0) scale(.5); }
+      63%     { opacity: 1; transform: translate(-2px, 8px) scale(1); }
+      73%     { opacity: 1; transform: translate(-8px, 26px) scale(1); }
+      82%     { opacity: 0; transform: translate(-8px, 26px) scale(.7); }
+      100%    { opacity: 0; transform: translate(0, 0) scale(.5); }
+    }
+
+    /* 弹窗 mock（还原 popup.html） */
+    .popup {
+      position: absolute; top: 44px; right: -6px; z-index: 5; width: 246px;
+      background: #fff; border: 1px solid #E2DCCB; border-radius: 14px;
+      box-shadow: 0 24px 48px -12px rgba(24, 36, 48, .35);
+      padding: 14px 14px 12px;
+    }
+    .popup::before {
+      content: ""; position: absolute; top: -7px; right: 16px;
+      width: 12px; height: 12px; background: #fff;
+      border-left: 1px solid #E2DCCB; border-top: 1px solid #E2DCCB;
+      transform: rotate(45deg);
+    }
+    .popup h3 { margin: 0 0 9px; font: 700 12.5px/1.4 var(--sans); color: var(--ink); }
+    .p-field { margin-bottom: 7px; }
+    .p-field .k {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10px; color: #999; margin-bottom: 3px;
+    }
+    .p-field .k i { font-style: normal; padding: 1px 7px; border: 1px solid #DADCE0; border-radius: 3px; font-size: 9px; color: #5f6368; }
+    .p-field .v {
+      font-size: 11.5px; line-height: 1.6; word-break: break-all;
+      background: #F6F8FA; border-radius: 6px; padding: 7px 9px; color: var(--ink-2);
+    }
+    .p-status { font-size: 10px; color: var(--faint); margin: 8px 2px 0; }
+    .p-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .p-actions span {
+      flex: 1; text-align: center; padding: 6px 0; border-radius: 4px;
+      font-size: 10.5px; font-weight: 600;
+    }
+    .p-actions .a { background: var(--blue); color: #fff; }
+    .p-actions .b { background: #F1F3F4; color: #333; }
+    .p-toast {
+      position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%) translateY(6px) scale(.92);
+      padding: 6px 14px; border-radius: 999px; background: var(--green); color: #fff;
+      font: 600 10.5px/1.4 var(--sans); white-space: nowrap;
+      box-shadow: 0 6px 16px rgba(20, 138, 84, .4);
+      opacity: 0; animation: toast var(--cycle) ease-out infinite;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .p-toast svg { width: 11px; height: 11px; }
+    @keyframes toast {
+      0%, 72% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.92); }
+      78%, 90% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      96%, 100% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.92); }
+    }
+    .stage-note {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      margin-top: 14px; padding: 0 4px;
+      font: 500 11px/1.6 var(--mono); color: var(--faint);
+    }
+    .stage-note .live { display: inline-flex; align-items: center; gap: 6px; }
+    .stage-note .live::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      animation: blink 1.6s infinite;
+    }
+    @keyframes blink { 50% { opacity: .25; } }
+    @media (max-width: 560px) {
+      .popup { width: 218px; right: 2px; }
+      .row div, .sheet-head div { padding: 10px 8px; font-size: 11.5px; }
+      .scan { height: 40px; }
+      @keyframes scan {
+        0%,9% { top: 0; opacity: 1; } 14%,23% { top: 48px; } 28%,37% { top: 96px; }
+        42%,86% { top: 144px; opacity: 1; } 94% { top: 144px; opacity: 0; } 100% { top: 0; opacity: 0; }
+      }
+    }
+
+    /* ---- 滚动显现 ---- */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); transition-delay: var(--d, 0s); }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .hero-badge, .hero h1, .hero .lead, .hero-ctas, .hero-meta, .hero-scenes, .stage { opacity: 1 !important; transform: none !important; animation: none !important; }
+      .scan, .fly, .p-toast, .ext-btn::after { animation-duration: 0s; animation-iteration-count: 1; }
+      html { scroll-behavior: auto; }
+    }
+
+    /* ---- 特性 ---- */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 960px) { .features { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px) { .features { grid-template-columns: 1fr; } }
+    .feat {
+      position: relative; padding: 26px 24px 24px; border-radius: 14px;
+      background: var(--card); border: 1px solid #E9E4D4;
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+      overflow: hidden;
+    }
+    .feat::before {
+      content: ""; position: absolute; top: 0; left: 24px; right: 24px; height: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
+    }
+    .feat:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); border-color: #DCD6C2; }
+    .feat:hover::before { transform: scaleX(1); }
+    .feat .ic {
+      width: 42px; height: 42px; border-radius: 11px; margin-bottom: 16px;
+      background: var(--blue-soft); color: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feat .ic svg { width: 21px; height: 21px; }
+    .feat h3 { margin: 0 0 8px; font: 700 17px/1.5 var(--serif); }
+    .feat p { margin: 0; font-size: 13.5px; line-height: 1.85; color: var(--muted); }
+    .feat p code {
+      font: 600 11.5px/1 var(--mono); color: var(--blue-deep);
+      background: var(--blue-soft); padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* ---- 工作原理 ---- */
+    .how { display: grid; grid-template-columns: 1fr 1.05fr; gap: 40px; align-items: start; }
+    @media (max-width: 960px) { .how { grid-template-columns: 1fr; } }
+    .flow { display: flex; flex-direction: column; gap: 0; }
+    .flow-item {
+      display: flex; gap: 18px; position: relative; padding-bottom: 30px;
+    }
+    .flow-item:not(:last-child)::before {
+      content: ""; position: absolute; left: 17px; top: 40px; bottom: 4px;
+      width: 2px; background: repeating-linear-gradient(180deg, #C9C3B2 0 5px, transparent 5px 11px);
+    }
+    .flow-item .n {
+      flex: none; width: 36px; height: 36px; border-radius: 50%;
+      background: var(--card); border: 1.5px solid var(--blue); color: var(--blue);
+      font: 600 13px/1 var(--mono); display: flex; align-items: center; justify-content: center;
+    }
+    .flow-item:last-child .n { background: var(--blue); color: #fff; }
+    .flow-item h4 { margin: 6px 0 4px; font: 700 15.5px/1.5 var(--sans); }
+    .flow-item p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.8; }
+    .flow-item p code { font: 600 11.5px/1 var(--mono); background: #EFEBDD; padding: 2px 6px; border-radius: 4px; color: var(--ink-2); }
+
+    .code-card {
+      background: var(--dark); border-radius: 14px; overflow: hidden;
+      box-shadow: var(--shadow-lift); border: 1px solid #0C1620;
+    }
+    .code-bar {
+      display: flex; align-items: center; gap: 8px; padding: 11px 16px;
+      background: #0D1822; border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .code-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.14); }
+    .code-bar .t { margin-left: 6px; font: 500 11px/1.6 var(--mono); color: rgba(255,255,255,.45); }
+    .code-card pre {
+      margin: 0; padding: 20px 22px 24px; overflow-x: auto;
+      font: 400 12.5px/2 var(--mono); color: #B7C6D3;
+    }
+    .code-card .m { color: #5A7080; }
+    .code-card .k { color: #7EB8F5; }
+    .code-card .s { color: #9BD8AC; }
+    .code-card .n { color: #F2C98A; }
+    .code-note {
+      display: flex; gap: 8px; align-items: flex-start;
+      margin-top: 14px; padding: 12px 16px; border-radius: 10px;
+      background: #FDF6DC; border: 1px solid #F0E4B0;
+      font-size: 12.5px; line-height: 1.8; color: #6B5B1E;
+    }
+    .code-note svg { width: 15px; height: 15px; flex: none; margin-top: 4px; color: #B08D1E; }
+
+    /* ---- 快速上手 ---- */
+    .steps-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 44px; align-items: start; }
+    @media (max-width: 960px) { .steps-grid { grid-template-columns: 1fr; } }
+    .steps { counter-reset: step; display: flex; flex-direction: column; }
+    .step {
+      display: flex; gap: 20px; position: relative; padding-bottom: 34px;
+    }
+    .step:not(:last-child)::before {
+      content: ""; position: absolute; left: 23px; top: 52px; bottom: 6px; width: 2px;
+      background: linear-gradient(180deg, var(--blue-soft), #EFEADB);
+    }
+    .step .no {
+      flex: none; width: 48px; height: 48px; border-radius: 13px;
+      background: var(--card); border: 1px solid #E2DCCB; box-shadow: var(--shadow);
+      font: 600 15px/1 var(--mono); color: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .2s ease, background .2s ease, color .2s ease;
+    }
+    .step:hover .no { background: var(--blue); border-color: var(--blue); color: #fff; transform: translateY(-2px); }
+    .step h4 { margin: 3px 0 5px; font: 700 16px/1.5 var(--serif); }
+    .step p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.85; }
+    .step p code { font: 600 11.5px/1 var(--mono); background: #EFEBDD; padding: 2px 6px; border-radius: 4px; color: var(--ink-2); }
+    .step p b { color: var(--ink); font-weight: 600; }
+    .tips-card {
+      position: sticky; top: 92px; padding: 26px 24px; border-radius: 14px;
+      background: var(--dark); color: #C7D3DD; box-shadow: var(--shadow-lift);
+    }
+    .tips-card h4 { margin: 0 0 14px; font: 600 12px/1 var(--mono); letter-spacing: .2em; color: #7EB8F5; }
+    .tips-card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .tips-card li { display: flex; gap: 11px; font-size: 13px; line-height: 1.8; }
+    .tips-card li svg { width: 15px; height: 15px; flex: none; margin-top: 5px; color: #6FB6F2; }
+    .tips-card li b { color: #fff; font-weight: 600; }
+    .tips-card .foot {
+      margin-top: 22px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,.16);
+      font-size: 12px; color: rgba(255,255,255,.55); line-height: 1.8;
+    }
+    .tips-card .foot a { color: #7EB8F5; text-decoration: none; }
+    .tips-card .foot a:hover { text-decoration: underline; }
+
+    /* ---- 安全 ---- */
+    .sec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 860px) { .sec-grid { grid-template-columns: 1fr; } }
+    .sec-card {
+      padding: 28px 26px; border-radius: 14px; background: var(--card); border: 1px solid #E9E4D4;
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+    .sec-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
+    .sec-card .ic {
+      width: 44px; height: 44px; border-radius: 50%; margin-bottom: 18px;
+      background: var(--green-soft); color: var(--green);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sec-card .ic svg { width: 21px; height: 21px; }
+    .sec-card h3 { margin: 0 0 8px; font: 700 17px/1.5 var(--serif); }
+    .sec-card p { margin: 0; font-size: 13.5px; line-height: 1.85; color: var(--muted); }
+
+    /* ---- FAQ ---- */
+    .faq-list { max-width: 760px; }
+    .faq-item {
+      border: 1px solid #E9E4D4; border-radius: 13px; background: var(--card);
+      margin-bottom: 12px; overflow: hidden; transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .faq-item[open] { border-color: #C9D8FF; box-shadow: var(--shadow); }
+    .faq-item summary {
+      list-style: none; cursor: pointer; display: flex; align-items: center; gap: 16px;
+      padding: 19px 22px; font: 600 15.5px/1.6 var(--sans);
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary .q {
+      flex: none; font: 600 12px/1 var(--mono); color: var(--blue);
+    }
+    .faq-item summary .plus {
+      margin-left: auto; flex: none; width: 22px; height: 22px; position: relative; color: var(--faint);
+      transition: transform .25s ease;
+    }
+    .faq-item summary .plus::before, .faq-item summary .plus::after {
+      content: ""; position: absolute; background: currentColor; border-radius: 2px;
+    }
+    .faq-item summary .plus::before { left: 4px; right: 4px; top: 10px; height: 2px; }
+    .faq-item summary .plus::after { top: 4px; bottom: 4px; left: 10px; width: 2px; }
+    .faq-item[open] summary .plus { transform: rotate(45deg); color: var(--blue); }
+    .faq-item .a { padding: 0 22px 20px 54px; font-size: 14px; color: var(--muted); line-height: 1.9; }
+    .faq-item .a b { color: var(--ink); }
+    .faq-item .a code { font: 600 12px/1 var(--mono); background: #EFEBDD; padding: 2px 6px; border-radius: 4px; color: var(--ink-2); }
+
+    /* ---- 底部 CTA ---- */
+    .cta {
+      margin: 110px 0 0; padding: 84px 0 90px;
+      background: var(--dark); color: #fff; position: relative; overflow: hidden;
+    }
+    .cta::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .cta::after {
+      content: ""; position: absolute; width: 720px; height: 720px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 98, 232, .38), transparent 65%);
+      top: -320px; right: -180px; pointer-events: none;
+    }
+    .cta .inner { position: relative; z-index: 1; text-align: center; }
+    .cta h2 { font: 900 clamp(30px, 4.6vw, 50px)/1.35 var(--serif); margin: 0 0 18px; }
+    .cta h2 em { font-style: normal; color: #7EB8F5; }
+    .cta p { margin: 0 auto 34px; max-width: 36em; color: rgba(255,255,255,.62); font-size: 15.5px; }
+    .cta .btns { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
+    .cta .btn-primary { box-shadow: 0 14px 34px -8px rgba(34, 98, 232, .7); }
+    .cta .note { margin-top: 22px; font: 500 12px/1.8 var(--mono); color: rgba(255,255,255,.4); }
+
+    /* ---- 页脚 ---- */
+    footer { background: var(--dark); color: rgba(255,255,255,.45); border-top: 1px solid rgba(255,255,255,.08); padding: 34px 0 44px; }
+    .foot-inner { display: flex; flex-wrap: wrap; gap: 18px 36px; align-items: flex-start; }
+    .foot-brand { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.85); font: 700 15px/1.4 var(--serif); }
+    .foot-brand svg { width: 26px; height: 26px; }
+    .foot-links { display: flex; gap: 22px; margin-left: auto; flex-wrap: wrap; }
+    .foot-links a { color: rgba(255,255,255,.55); text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+    .foot-links a:hover { color: #fff; }
+    .foot-links svg { width: 14px; height: 14px; }
+    .foot-note {
+      width: 100%; margin-top: 8px; padding-top: 18px; border-top: 1px dashed rgba(255,255,255,.12);
+      font: 400 11.5px/2 var(--sans); color: rgba(255,255,255,.32);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- 导航 -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="金山文档拉取器 首页">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#2262E8"/><rect x="13" y="13" width="30" height="32" rx="3" fill="#fff"/><path d="M13 24h30M23 13v32M33 13v32" stroke="#2262E8" stroke-width="2.5"/><path d="M44 36l9 16H35z" fill="#6FB6F2"/></svg>
+        <span class="name">金山文档拉取器<small>KDOCS FETCHER</small></span>
+      </a>
+      <nav class="nav-links" aria-label="页面导航">
+        <a href="#features">功能特性</a>
+        <a href="#how">工作原理</a>
+        <a href="#start">快速上手</a>
+        <a href="#security">安全与隐私</a>
+        <a href="#faq">常见问题</a>
+      </nav>
+      <a class="btn btn-primary" href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
+        Edge 商店安装
+      </a>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="hero-badge"><span class="dot"></span>v1.0.4 · 已上架 Edge 加载项商店</span>
+          <h1>一点<br>就是<span class="u">最新数据</span></h1>
+          <p class="lead">金山文档拉取器是一个免费的浏览器扩展：点击工具栏图标，即把金山文档<b>多维表格 / 电子表格</b>中你指定字段的最新记录送到眼前、<b>自动复制到剪贴板</b>。不装客户端、不写公式，数据始终在你自己的账号里。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
+              从 Edge 商店免费安装
+            </a>
+            <a class="btn btn-ghost" href="#start">五分钟完成配置</a>
+          </div>
+          <div class="hero-meta">
+            <span>免费 · 无内购</span>
+            <span>Manifest V3</span>
+            <span>仅连接 kdocs.cn</span>
+            <span>配置存于本地</span>
+          </div>
+          <div class="hero-scenes">
+            <b>适合</b>
+            <i>日报摘录</i><i>账号分发</i><i>报销单号</i><i>值班安排</i><i>内容排期</i><i>学员信息</i>
+          </div>
+        </div>
+
+        <!-- 演示舞台 -->
+        <div class="stage" role="img" aria-label="演示动画：扩展扫描金山文档表格并拉取最新一行记录，自动复制到剪贴板">
+          <div class="window">
+            <div class="win-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="addr">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <span>www.kdocs.cn/l/ckV2Zm9</span>
+              </span>
+              <span class="ext-btn" title="金山文档拉取器">
+                <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#fff" opacity=".14"/><rect x="13" y="13" width="30" height="32" rx="3" fill="#fff"/><path d="M13 24h30M23 13v32M33 13v32" stroke="#2262E8" stroke-width="3"/><path d="M44 36l9 16H35z" fill="#6FB6F2"/></svg>
+              </span>
+            </div>
+            <div class="sheet">
+              <div class="sheet-title">
+                <span class="t">运营记录多维表</span>
+                <span class="s">sheet: 项目 · 4 条记录</span>
+              </div>
+              <div class="sheet-head" aria-hidden="true"><div>机构</div><div>内容</div><div>日期</div></div>
+              <div class="rows">
+                <div class="scan" aria-hidden="true"></div>
+                <div class="row"><div>蓝鲸文化</div><div>三月视频选题初稿</div><div>03-12</div></div>
+                <div class="row"><div>灯塔设计</div><div>合同扫描件归档</div><div>03-18</div></div>
+                <div class="row"><div>南山书店</div><div>会员日推送文案</div><div>03-25</div></div>
+                <div class="row latest">
+                  <span class="tag">最新</span>
+                  <div>白鲸速运</div><div>站点巡检记录</div><div>04-02</div>
+                </div>
+              </div>
+              <span class="fly" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <div class="popup" aria-hidden="true">
+            <h3>最新记录</h3>
+            <div class="p-field">
+              <div class="k"><span>内容（B 列，行 4）</span><i>复制</i></div>
+              <div class="v">站点巡检记录</div>
+            </div>
+            <div class="p-field">
+              <div class="k"><span>机构（A 列，行 4）</span><i>复制</i></div>
+              <div class="v">白鲸速运</div>
+            </div>
+            <div class="p-field">
+              <div class="k"><span>日期（C 列，行 4）</span><i>复制</i></div>
+              <div class="v">2026-04-02 14:30:00</div>
+            </div>
+            <div class="p-status">多维表格模式</div>
+            <div class="p-actions"><span class="a">全部复制</span><span class="b">重新获取</span></div>
+            <div class="p-toast">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg>
+              已复制到剪贴板
+            </div>
+          </div>
+
+          <div class="stage-note">
+            <span class="live">真实流程演示</span>
+            <span>webhook 直连 · 10s 超时保护</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="kicker"><b>01</b> FEATURES</span>
+          <h2>小而准的<em>效率工具</em></h2>
+          <p>不为表格再造一个客户端，只解决一件事：让你最新的那条记录，用最短路径到达剪贴板。</p>
+        </div>
+        <div class="features">
+          <article class="feat reveal" style="--d:.0s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+            <h3>一键拉取</h3>
+            <p>点击工具栏图标即刻拉取，无需打开网页、翻找表格。支持开启「点击图标自动拉取」，图标即入口。</p>
+          </article>
+          <article class="feat reveal" style="--d:.06s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="4" width="12" height="16" rx="2"/><path d="M9 4a3 3 0 0 1 6 0M9 10h8M9 14h8"/></svg></div>
+            <h3>自动复制</h3>
+            <p>指定「自动复制字段」后，打开即复制、粘贴即用；多个字段可整段复制，字段名自动跟随。</p>
+          </article>
+          <article class="feat reveal" style="--d:.12s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="19" cy="15" r="3"/></svg></div>
+            <h3>字段随你定义</h3>
+            <p>按字段名、列字母或列号定位，支持 <code>显示名=列字母</code> 与 <code>:date</code> 转可读时间，一次配置长期生效。</p>
+          </article>
+          <article class="feat reveal" style="--d:.18s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg></div>
+            <h3>双表格模式</h3>
+            <p>多维表格按字段名取值，调整列顺序、视图排序均不影响；电子表格自动识别表头，兼容两种形态。</p>
+          </article>
+          <article class="feat reveal" style="--d:.24s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></div>
+            <h3>六步配置向导</h3>
+            <p>内置带截图的分步向导：部署脚本、生成令牌、填入配置一气呵成，全程约 5 分钟。</p>
+          </article>
+          <article class="feat reveal" style="--d:.3s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3 8.4 7 10 4-1.6 7-5 7-10V6z"/><path d="m9.5 12 2 2 3.5-4"/></svg></div>
+            <h3>锁定与迁移</h3>
+            <p>6 位 PIN 一键锁定，锁定后零请求；配置可加密迁移到新设备，换机不重新配置。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 工作原理 -->
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="kicker"><b>02</b> HOW IT WORKS</span>
+          <h2>数据<em>只在你</em>的账号里流转</h2>
+          <p>拉取动作由你表格里的 AirScript 脚本完成，扩展只负责触发与展示 —— 没有第三方服务器经手你的数据。</p>
+        </div>
+        <div class="how">
+          <div class="flow reveal">
+            <div class="flow-item">
+              <span class="n">1</span>
+              <div><h4>触发</h4><p>点击浏览器工具栏上的扩展图标，弹出「最新记录」面板。</p></div>
+            </div>
+            <div class="flow-item">
+              <span class="n">2</span>
+              <div><h4>直连</h4><p>扩展向 <code>www.kdocs.cn</code> 发起 webhook 同步请求，携带你的脚本令牌。</p></div>
+            </div>
+            <div class="flow-item">
+              <span class="n">3</span>
+              <div><h4>执行</h4><p>你部署在表格中的 AirScript 脚本读取指定字段的最新一行并回传。</p></div>
+            </div>
+            <div class="flow-item">
+              <span class="n">4</span>
+              <div><h4>到手</h4><p>字段渲染进弹窗，自动复制字段同步写入剪贴板，整个链路秒级完成。</p></div>
+            </div>
+          </div>
+          <div class="reveal" style="--d:.1s">
+            <div class="code-card">
+              <div class="code-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="t">sync_task · POST</span></div>
+<pre><span class="k">POST</span> /api/v3/ide/file/&lt;file_id&gt;/script/&lt;script_id&gt;/sync_task
+<span class="k">Host:</span> www.kdocs.cn
+<span class="k">AirScript-Token:</span> ••••••••••••
+
+{
+  <span class="s">"Context"</span>: {
+    <span class="s">"argv"</span>: {
+      <span class="s">"sheet"</span>:  <span class="s">"项目"</span>,
+      <span class="s">"fields"</span>: [<span class="s">"内容"</span>, <span class="s">"机构"</span>, <span class="s">"日期:date"</span>],
+      <span class="s">"order"</span>:  <span class="s">"bottom"</span>
+    }
+  }
+}</pre>
+            </div>
+            <div class="code-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              <span>请求由扩展直接发往金山文档，10 秒超时保护；脚本版本不匹配时会明确提示重新部署，不会静默出错。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 快速上手 -->
+    <section class="section" id="start">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="kicker"><b>03</b> GET STARTED</span>
+          <h2>六步上手，<em>约五分钟</em></h2>
+          <p>装好扩展后，跟随内置配置向导走一遍即可；这里先给你预览全流程。</p>
+        </div>
+        <div class="steps-grid">
+          <div class="steps">
+            <div class="step reveal">
+              <span class="no">01</span>
+              <div><h4>安装扩展</h4><p>前往 Edge 加载项商店，点击「获取」安装 <a href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;text-decoration:none">金山文档拉取器</a>。</p></div>
+            </div>
+            <div class="step reveal" style="--d:.05s">
+              <span class="no">02</span>
+              <div><h4>打开脚本管理</h4><p>在金山文档打开你的多维表格，进入 <b>更多 → 脚本 → AirScript 脚本 → 管理脚本</b>。</p></div>
+            </div>
+            <div class="step reveal" style="--d:.1s">
+              <span class="no">03</span>
+              <div><h4>新建 AirScript 脚本</h4><p>点击「+」旁的小三角，选择 <b>新建 AirScript 1.0 脚本</b>。注意编辑器右上角需为 <b>API 1.0</b>。</p></div>
+            </div>
+            <div class="step reveal" style="--d:.15s">
+              <span class="no">04</span>
+              <div><h4>粘贴脚本代码</h4><p>扩展向导内提供 <code>一键复制脚本代码</code>，粘贴进编辑器并保存。</p></div>
+            </div>
+            <div class="step reveal" style="--d:.2s">
+              <span class="no">05</span>
+              <div><h4>生成令牌与链接</h4><p>在脚本编辑器生成<b>脚本令牌</b>，并通过侧边栏「更多菜单」复制 <code>webhook 链接</code>。</p></div>
+            </div>
+            <div class="step reveal" style="--d:.25s">
+              <span class="no">06</span>
+              <div><h4>填入配置，大功告成</h4><p>打开扩展配置页，粘贴链接与令牌、填好字段名。点击工具栏图标，最新记录到手。</p></div>
+            </div>
+          </div>
+          <aside class="tips-card reveal" style="--d:.12s">
+            <h4>向导里的贴心细节</h4>
+            <ul>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg><span><b>每步配截图</b>：6 步全部带操作截图，照着点就行，不怕迷路。</span></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg><span><b>自动选表</b>：多维表格有多张表时向导会列出可选，也可填表名或序号。</span></li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg><span><b>连通性自检</b>：配置完成前会实测一次拉取，绿了才算数。</span></li>
+            </ul>
+            <div class="foot">
+              还没装扩展？先去商店，向导在扩展里等你。<br>
+              <a href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">前往 Edge 商店安装 →</a>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- 安全与隐私 -->
+    <section class="section" id="security">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="kicker"><b>04</b> SECURITY</span>
+          <h2>安全，是<em>默认值</em></h2>
+          <p>权限只申请必需项，通信只指向金山文档，配置只保存在你的浏览器里。</p>
+        </div>
+        <div class="sec-grid">
+          <article class="sec-card reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></div>
+            <h3>本地优先存储</h3>
+            <p>所有配置仅保存在浏览器本地。跨设备迁移时以 6 位 PIN 加密后经浏览器账号云同步中转，不落地任何第三方数据库。</p>
+          </article>
+          <article class="sec-card reveal" style="--d:.08s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3 8.4 7 10 4-1.6 7-5 7-10V6z"/><path d="m9.5 12 2 2 3.5-4"/></svg></div>
+            <h3>最小权限与直连</h3>
+            <p>仅申请 storage / declarativeNetRequest / sidePanel 三项权限，网络访问限定 kdocs.cn 单一域名，请求不经任何中间服务器。</p>
+          </article>
+          <article class="sec-card reveal" style="--d:.16s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg></div>
+            <h3>一键锁定</h3>
+            <p>临时离开电脑？锁定后所有功能停用、不发起任何 webhook 请求；恢复使用需输入 PIN，用完即焚、不落盘保存。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 常见问题 -->
+    <section class="section" id="faq">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="kicker"><b>05</b> FAQ</span>
+          <h2>你可能想问</h2>
+        </div>
+        <div class="faq-list reveal">
+          <details class="faq-item" open>
+            <summary><span class="q">Q1</span>支持哪些表格？<span class="plus"></span></summary>
+            <div class="a">金山文档的<b>多维表格</b>与<b>电子表格</b>都支持。多维表格按字段名读取，调整列顺序或视图排序均不影响结果；电子表格会自动在任意行识别表头，无表头时可用 <code>显示名=列字母</code>（如 <code>机构=E</code>）定位。</div>
+          </details>
+          <details class="faq-item">
+            <summary><span class="q">Q2</span>我的数据安全吗？<span class="plus"></span></summary>
+            <div class="a">扩展只与 <code>www.kdocs.cn</code> 直连通信，没有任何第三方服务器参与；拉取动作由你账号里的脚本完成，权限边界就是你脚本本身的权限。配置存于本地，云迁移经 6 位 PIN 加密，锁定状态下零请求发出。</div>
+          </details>
+          <details class="faq-item">
+            <summary><span class="q">Q3</span>为什么要部署脚本？麻烦吗？<span class="plus"></span></summary>
+            <div class="a">这是它安全的原因：脚本跑在你自己的表格里，数据无需授权给任何外部应用。部署只需复制粘贴一次，扩展内置带截图的六步向导，全程约 5 分钟，之后一劳永逸。</div>
+          </details>
+          <details class="faq-item">
+            <summary><span class="q">Q4</span>Chrome 或其他浏览器能用吗？<span class="plus"></span></summary>
+            <div class="a">扩展基于 Manifest V3 标准开发，技术上兼容 Chromium 系浏览器；当前上架于 <b>Edge 加载项商店</b>，在 Microsoft Edge 中安装体验最佳。</div>
+          </details>
+          <details class="faq-item">
+            <summary><span class="q">Q5</span>要付费吗？<span class="plus"></span></summary>
+            <div class="a">扩展完全<b>免费</b>，无内购、无广告。使用金山文档需要你自己的账号（免费版即可）。</div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部 CTA -->
+    <section class="cta">
+      <div class="wrap inner">
+        <h2 class="reveal">下一次要查记录，<br><em>别再翻表格了。</em></h2>
+        <p class="reveal" style="--d:.08s">安装只需十几秒，配置跟着向导五分钟走完。从此，表格里的最新一条，永远比打开网页快一步。</p>
+        <div class="btns reveal" style="--d:.16s">
+          <a class="btn btn-primary" href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
+            从 Edge 商店免费安装
+          </a>
+          <a class="btn btn-light" href="https://github.com/shui-tiao/kdocs-fetcher" target="_blank" rel="noopener">GitHub 仓库</a>
+        </div>
+        <p class="note reveal" style="--d:.24s">MICROSOFT EDGE · FREE · NO ADS · 数据不出你的账号</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot-inner">
+      <a class="foot-brand" href="#top">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#2262E8"/><rect x="13" y="13" width="30" height="32" rx="3" fill="#fff"/><path d="M13 24h30M23 13v32M33 13v32" stroke="#2262E8" stroke-width="2.5"/><path d="M44 36l9 16H35z" fill="#6FB6F2"/></svg>
+        金山文档拉取器
+      </a>
+      <div class="foot-links">
+        <a href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>Edge 商店
+        </a>
+        <a href="https://github.com/shui-tiao/kdocs-fetcher" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.57.67.48A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg>GitHub
+        </a>
+        <a href="#start">快速上手</a>
+        <a href="#faq">常见问题</a>
+      </div>
+      <div class="foot-note">
+        金山文档拉取器（KDocs Fetcher）为独立开发的浏览器扩展，与金山办公 / WPS / 金山文档无隶属关系；kdocs.cn 及相关名称为其权利人的商标。<br>
+        © <span id="year">2026</span> KDocs Fetcher · v1.0.4 · Made with a tiny AirScript.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        els.forEach ? els.forEach(function (el) { el.classList.add('in'); }) : null;
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(function (el) { io.observe(el); });
+      document.getElementById('year').textContent = new Date().getFullYear();
+    })();
+  </script>
+</body>
+</html>
