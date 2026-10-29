@@ -5,6 +5,8 @@
   <title>配置向导 - 金山文档拉取器</title>
   <style>
     * { box-sizing: border-box; }
+    /* display:flex/block 的元素会盖掉 hidden 的默认样式，统一强制隐藏 */
+    [hidden] { display: none !important; }
     body { margin: 0; padding: 20px 14px 32px; background: #f1f3f4; font-family: "Microsoft YaHei", sans-serif; color: #333; }
     .wizard { width: 640px; max-width: 100%; margin: 0 auto; }
     h1 { font-size: 17px; margin: 0 0 10px; }
@@ -29,6 +31,21 @@
     input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26, 115, 232, .15); }
     .tip { font-size: 12px; color: #888; margin-top: 6px; line-height: 1.7; }
     .summary { font-size: 13px; line-height: 1.9; background: #f8f9fa; border-radius: 8px; padding: 12px 16px; }
+    .sheet-list { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+    .sheet-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #dadce0; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .sheet-item:hover { background: #f8f9fa; }
+    .sheet-item input { width: auto; margin: 0; }
+    .sheet-item em { margin-left: auto; font-style: normal; font-size: 12px; color: #9aa0a6; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+    .chip { padding: 4px 10px; font-size: 12px; border-radius: 12px; background: #f1f3f4; color: #5f6368; border: 1px solid transparent; }
+    .chip:hover { background: #e8f0fe; color: #1a73e8; }
+    .chip.on { background: #e8f0fe; color: #1a73e8; border-color: #1a73e8; }
+    .probe-state { margin: 0 0 10px; font-size: 13px; }
+    .probe-state.err { color: #d93025; }
+    .probe-state.ok { color: #188038; }
+    #savedNote { margin: 12px 0 0 34px; }
+    .link-mark { display: flex; justify-content: center; margin: 20px 0 2px; }
+    .link-mark svg { width: 68px; height: 68px; padding: 15px; box-sizing: border-box; border-radius: 50%; background: #e8f0fe; stroke: #1a73e8; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
     #error { min-height: 18px; margin-top: 16px; font-size: 12px; color: #d93025; }
     .actions { display: flex; align-items: center; gap: 10px; }
     .actions .spacer { flex: 1; }
@@ -51,6 +68,7 @@
       body { padding: 16px 10px 24px; }
       .card { padding: 16px 14px; }
       .body, .shot-wrap { margin-left: 0; }
+      #savedNote { margin-left: 0; }
       .actions button { padding: 9px 16px; }
     }
   </style>
@@ -61,7 +79,7 @@
     <h1>配置向导</h1>
     <div class="progress">
       <div class="bar"><i id="bar"></i></div>
-      <span id="stepLabel">第 1 / 6 步</span>
+      <span id="stepLabel">第 1 / 7 步</span>
     </div>
 
     <div class="card">
@@ -129,12 +147,30 @@
       </section>
 
       <section class="step" data-step="6" hidden>
-        <div class="step-head"><span class="badge">6</span><h2>完成配置</h2></div>
+        <div class="step-head"><span class="badge">6</span><h2>确认连接信息</h2></div>
         <div class="body">
-          <p>配置已完成，可在扩展设置中设置其他项目（要拉取的字段、最新数据位置、自动复制字段）；点击「保存」后关闭侧边栏即可。</p>
+          <p>必要信息已收集，我们将会用下面的令牌和 Webhook 探测你该文档里的数据。</p>
           <div id="summary" class="summary"></div>
         </div>
-        <div class="done-mark" aria-hidden="true">
+        <div class="link-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+        </div>
+      </section>
+
+      <section class="step" data-step="7" hidden>
+        <div class="step-head"><span class="badge">7</span><h2>选择数据表与字段</h2></div>
+        <div class="body" id="wizardConfig">
+          <p id="probeState" class="probe-state">正在探测文档里的数据表…</p>
+          <div id="sheetList" class="sheet-list" hidden></div>
+          <button id="reprobe" class="secondary" type="button" hidden>重新探测</button>
+          <button id="backStep" class="ghost" type="button" hidden></button>
+          <label for="wizardFields" style="margin-top:14px">要抓取的字段</label>
+          <input id="wizardFields" type="text" placeholder="如 内容,机构,日期:date" autocomplete="off" spellcheck="false">
+          <div id="fieldChips" class="chips"></div>
+          <div class="tip">多个字段用逗号分隔；支持「显示名=字段名」与「字段名:date」（把时间戳转成日期）。<br>点下方标签可快速加入/移出字段。确认后点「保存并完成」。</div>
+        </div>
+        <p id="savedNote" class="probe-state ok" hidden></p>
+        <div id="doneMark" class="done-mark" aria-hidden="true" hidden>
           <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
         </div>
       </section>

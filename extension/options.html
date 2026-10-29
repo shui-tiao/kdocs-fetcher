@@ -58,6 +58,9 @@
   <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>
   <label for="token">脚本令牌（AirScript-Token）</label>
   <input id="token" type="password" placeholder="在脚本编辑器中生成的脚本令牌">
+  <label for="sheetName">数据表名称（多维表格有多张表时必填）</label>
+  <input id="sheetName" type="text" placeholder="如 项目；也可填 1 起始序号">
+  <div class="tip">多维表格里可有多张表（如 项目/任务/周报/成员）。留空时优先读取当前视图所在表，否则取第一张可读取的表</div>
   <label>要拉取的字段</label>
   <div id="fieldList"></div>
   <button id="addField" type="button">+ 添加字段</button>

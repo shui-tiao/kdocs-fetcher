@@ -116,7 +116,7 @@ async function fetchLatest() {
   statusEl.classList.remove('hidden')
   copyBtn.disabled = true
 
-  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyField'])
+  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField'])
   if (!cfg.webhookUrl || !cfg.token) {
     showError('尚未配置 Webhook 链接或脚本令牌')
     openOptionsBtn.classList.remove('hidden')
@@ -127,6 +127,7 @@ async function fetchLatest() {
   const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
   const order = cfg.order === 'top' ? 'top' : 'bottom'
   const argv = { fields, order }
+  if (cfg.sheet) argv.sheet = cfg.sheet
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -176,7 +177,7 @@ async function fetchLatest() {
     showError(result.error || '脚本返回失败')
     return
   }
-  if (!Array.isArray(result.fields) || result.v !== 11) {
+  if (!Array.isArray(result.fields) || result.v !== 14) {
     showError('金山文档中的脚本版本过旧，请将最新 air.js 重新部署到脚本编辑器')
     return
   }

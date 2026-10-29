@@ -5,6 +5,7 @@
 
 const urlInput = document.getElementById('webhookUrl')
 const tokenInput = document.getElementById('token')
+const sheetInput = document.getElementById('sheetName')
 const fieldListEl = document.getElementById('fieldList')
 const statusEl = document.getElementById('status')
 const autoCopySelect = document.getElementById('autoCopyField')
@@ -88,9 +89,10 @@ function refreshAutoCopyOptions() {
   }
 }
 
-chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyField', 'autoFetch'], (cfg) => {
+chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch'], (cfg) => {
   if (cfg.webhookUrl) urlInput.value = cfg.webhookUrl
   if (cfg.token) tokenInput.value = cfg.token
+  if (cfg.sheet) sheetInput.value = cfg.sheet
   const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
   fields.forEach((f) => fieldListEl.appendChild(createFieldRow(f)))
   const order = cfg.order === 'top' ? 'top' : 'bottom'
@@ -131,6 +133,7 @@ document.getElementById('addField').addEventListener('click', () => {
 document.getElementById('save').addEventListener('click', () => {
   const webhookUrl = urlInput.value.trim()
   const token = tokenInput.value.trim()
+  const sheet = sheetInput.value.trim()
   const fields = getFields()
   const orderEl = document.querySelector('input[name="order"]:checked')
   const order = orderEl ? orderEl.value : 'bottom'
@@ -152,7 +155,7 @@ document.getElementById('save').addEventListener('click', () => {
     return
   }
 
-  chrome.storage.local.set({ webhookUrl, token, fields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
+  chrome.storage.local.set({ webhookUrl, token, sheet, fields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
     savedAutoCopyField = autoCopyField
     statusEl.className = 'ok'
     statusEl.textContent = '已保存'
