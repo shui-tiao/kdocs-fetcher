@@ -45,6 +45,12 @@
     .modal-actions button { margin-top: 0; }
     .modal-actions .secondary { background: #f1f3f4; color: #333; }
     .modal-actions .secondary:hover { background: #e2e5e7; }
+    .export-result { margin-top: 14px; }
+    .export-result.hidden { display: none; }
+    .export-result .field-row { margin-bottom: 0; }
+    .export-result .field-row .del { color: #1a73e8; background: #e8f0fe; }
+    .export-result .field-row .del:hover { background: #d2e3fc; }
+    #importLinkInput { letter-spacing: 0 !important; }
   </style>
 </head>
 <body>
@@ -106,6 +112,32 @@
     </div>
   </div>
 
+  <div class="section">
+    <h2>导出 / 导入配置</h2>
+    <div class="lock-row">
+      <div class="lock-text">
+        <b>导出配置链接</b>
+        用 6 位 PIN 加密当前配置并生成一条可保存的链接；拿到链接的人仍需 PIN 才能还原。
+      </div>
+      <button id="exportBtn" type="button">导出配置</button>
+    </div>
+    <div id="exportResult" class="export-result hidden">
+      <label for="exportLink">配置链接（请完整复制，保存到书签或记在别处）</label>
+      <div class="field-row">
+        <input id="exportLink" type="text" readonly>
+        <button id="copyExportLink" type="button" class="del">复制</button>
+      </div>
+      <div class="tip">在任意设备打开该链接，按页面提示打开扩展并输入 PIN 即可还原配置；链接较长，复制时请勿截断。</div>
+    </div>
+    <div class="lock-row">
+      <div class="lock-text">
+        <b>从链接导入</b>
+        粘贴配置链接并输入导出时设置的 6 位 PIN 解密还原（将覆盖当前配置）。
+      </div>
+      <button id="importBtn" type="button">从链接导入</button>
+    </div>
+  </div>
+
   <div id="pinModal" class="modal-mask hidden">
     <div class="modal">
       <h3 id="pinModalTitle"></h3>
@@ -130,6 +162,19 @@
       <div class="modal-actions">
         <button id="lockCancel" class="secondary" type="button">取消</button>
         <button id="lockConfirm" type="button">确定锁定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="importModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3>从链接导入</h3>
+      <p>粘贴包含配置数据的链接，下一步输入导出时设置的 6 位 PIN 解密还原。</p>
+      <label for="importLinkInput">配置链接</label>
+      <input id="importLinkInput" type="text" placeholder="https://shui-tiao.github.io/kdocs-fetcher/docs/#/import?v=1&amp;d=…">
+      <div class="modal-actions">
+        <button id="importCancelBtn" class="secondary" type="button">取消</button>
+        <button id="importConfirmBtn" type="button">下一步</button>
       </div>
     </div>
   </div>

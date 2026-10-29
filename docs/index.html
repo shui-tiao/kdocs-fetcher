@@ -558,6 +558,61 @@
       width: 100%; margin-top: 8px; padding-top: 18px; border-top: 1px dashed rgba(255,255,255,.12);
       font: 400 11.5px/2 var(--sans); color: rgba(255,255,255,.32);
     }
+
+    /* ---- 配置导入浮层（链接直达时出现） ---- */
+    .import-overlay {
+      position: fixed; inset: 0; z-index: 200; padding: 24px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(19, 31, 41, .58);
+      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+      animation: fadeIn .28s ease both;
+    }
+    .import-overlay[hidden] { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .import-card {
+      position: relative; width: 100%; max-width: 460px;
+      padding: 34px 32px 28px; border-radius: 18px;
+      background: var(--paper); border: 1px solid #E2DCCB;
+      box-shadow: 0 40px 90px -24px rgba(0, 0, 0, .55);
+      animation: pop .34s cubic-bezier(.2,.7,.2,1) both;
+    }
+    @keyframes pop { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+    .import-close {
+      position: absolute; top: 13px; right: 15px;
+      width: 32px; height: 32px; border: none; border-radius: 9px;
+      background: transparent; color: var(--faint); font-size: 20px; line-height: 1;
+      cursor: pointer; transition: background .15s, color .15s;
+    }
+    .import-close:hover { background: rgba(24, 36, 48, .07); color: var(--ink); }
+    .import-card .kicker { margin-bottom: 14px; }
+    .import-card h2 { margin: 0 0 10px; font: 900 26px/1.35 var(--serif); letter-spacing: .01em; }
+    .import-card > p { margin: 0 0 18px; font-size: 14px; line-height: 1.85; color: var(--muted); }
+    .import-status {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 18px; padding: 12px 15px;
+      border-radius: 10px; border: 1px solid #E7E2D2; background: #F1EEE3;
+      font-size: 12.5px; line-height: 1.7; color: var(--muted);
+    }
+    .import-status::before {
+      content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint);
+    }
+    .import-status.ok { background: var(--green-soft); border-color: #C3E6D1; color: #0E6B42; }
+    .import-status.ok::before { background: var(--green); }
+    .import-status.warn { background: #FDF6DC; border-color: #F0E4B0; color: #6B5B1E; }
+    .import-status.warn::before { background: #B08D1E; }
+    .import-status.err { background: #FCE8E6; border-color: #F2C8C6; color: #A5261D; }
+    .import-status.err::before { background: #D93025; }
+    .import-actions { display: flex; flex-direction: column; gap: 10px; }
+    .import-actions .btn { width: 100%; justify-content: center; }
+    .import-actions .btn[hidden] { display: none !important; }
+    .import-hint { margin: 16px 0 0; font-size: 12px; line-height: 1.85; color: var(--faint); }
+    .import-hint a { color: var(--blue); text-decoration: none; }
+    .import-hint a:hover { text-decoration: underline; }
+    @media (max-width: 520px) {
+      .import-card { padding: 30px 22px 24px; }
+      .import-card h2 { font-size: 22px; }
+      .import-actions .btn { padding: 12px 16px; font-size: 14px; }
+    }
   </style>
 </head>
 <body>
@@ -922,6 +977,29 @@
     </div>
   </footer>
 
+  <!-- 配置导入浮层：访问导出链接（#/import?...）时出现 -->
+  <div class="import-overlay" id="importOverlay" hidden>
+    <div class="import-card" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+      <button class="import-close" id="importClose" type="button" aria-label="关闭">&times;</button>
+      <span class="kicker"><b>IMPORT</b> 配置导入</span>
+      <h2 id="importTitle">收到一份加密配置</h2>
+      <p>这条链接里带着一份用 PIN 加密的金山文档拉取器配置。还原它需要在本机安装扩展，并输入导出时设置的 6 位 PIN。</p>
+      <div class="import-status" id="importStatus">正在检测扩展是否已安装…</div>
+      <div class="import-actions">
+        <a class="btn btn-primary" id="importOpen" href="#" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7"/><path d="M21 3 11 13"/><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+          打开扩展进行导入
+        </a>
+        <a class="btn btn-primary" id="importStore" href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
+          前往 Edge 商店安装
+        </a>
+        <a class="btn btn-ghost" id="importGuide" href="#start">先看看怎么用</a>
+      </div>
+      <p class="import-hint" id="importHint"></p>
+    </div>
+  </div>
+
   <script>
     (function () {
       var els = document.querySelectorAll('.reveal');
@@ -936,6 +1014,129 @@
       }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
       els.forEach(function (el) { io.observe(el); });
       document.getElementById('year').textContent = new Date().getFullYear();
+    })();
+
+    // 配置导入：从导出链接（#/import?v=1&d=…&x=…）进入时，引导用户打开扩展完成导入
+    (function () {
+      var hash = location.hash.replace(/^#/, '');
+      if (hash.indexOf('/import') !== 0) return;
+
+      var overlay = document.getElementById('importOverlay');
+      var statusEl = document.getElementById('importStatus');
+      var openBtn = document.getElementById('importOpen');
+      var storeBtn = document.getElementById('importStore');
+      var hintEl = document.getElementById('importHint');
+      var closeBtn = document.getElementById('importClose');
+      var guideBtn = document.getElementById('importGuide');
+
+      var q = hash.indexOf('?');
+      var params = new URLSearchParams(q >= 0 ? hash.slice(q + 1) : '');
+      var data = (params.get('d') || '').replace(/\s+/g, '');
+      var extId = params.get('x') || 'embppmffjpkljnghnoljfbdamlldpfae';
+
+      function setStatus(kind, text) {
+        statusEl.className = 'import-status' + (kind ? ' ' + kind : '');
+        statusEl.textContent = text;
+      }
+
+      function show() {
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      }
+
+      // 把 base64url 数据还原成加密配置对象；失败返回 null
+      function decodeBackup(str) {
+        try {
+          var s = str.replace(/-/g, '+').replace(/_/g, '/');
+          var pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : '';
+          var bin = atob(s + pad);
+          var bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          return JSON.parse(new TextDecoder().decode(bytes));
+        } catch (e) {
+          return null;
+        }
+      }
+
+      var backup = data ? decodeBackup(data) : null;
+
+      show();
+
+      if (!backup || !backup.data) {
+        setStatus('err', '这条链接不完整或已损坏，无法读取配置');
+        storeBtn.hidden = false;
+        hintEl.textContent = '请确认复制时没有截断链接（#/import 之后的部分需要完整）。';
+        return;
+      }
+
+      setStatus('', '正在检测扩展是否已安装…');
+
+      // 借助 externally_connectable 向扩展发一条 ping，用来判断是否已安装
+      function ping(id, cb) {
+        var finished = false;
+        function done(ok) { if (!finished) { finished = true; cb(ok); } }
+        var runtime = null;
+        try { runtime = window.chrome && window.chrome.runtime; } catch (e) { runtime = null; }
+        if (!runtime || typeof runtime.sendMessage !== 'function') return done(false);
+        try {
+          runtime.sendMessage(id, { type: 'kdocs-fetcher-ping' }, function (res) {
+            var err = runtime.lastError;
+            done(Boolean(!err && res && res.ok));
+          });
+        } catch (e) { done(false); }
+        setTimeout(function () { done(false); }, 1500);
+      }
+
+      ping(extId, function (installed) {
+        if (!installed) {
+          setStatus('warn', '尚未检测到扩展，请先安装');
+          storeBtn.hidden = false;
+          hintEl.textContent = '安装完成后回到本页刷新，即可继续导入配置。';
+          return;
+        }
+        setStatus('ok', '已检测到扩展，可以开始导入');
+        openBtn.hidden = false;
+        hintEl.textContent = '点击后将打开扩展配置页，请输入导出时设置的 6 位 PIN 完成还原。';
+      });
+
+      openBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var runtime = null;
+        try { runtime = window.chrome && window.chrome.runtime; } catch (e) { runtime = null; }
+        if (!runtime || typeof runtime.sendMessage !== 'function') {
+          setStatus('err', '当前浏览器无法直接唤起扩展，请手动点开扩展图标 → 配置');
+          return;
+        }
+        try {
+          runtime.sendMessage(extId, { type: 'kdocs-fetcher-open-import', payload: backup }, function (res) {
+            var err = runtime.lastError;
+            if (err || !res || !res.ok) {
+              setStatus('err', '打开扩展失败，请确认扩展已启用后重试');
+              return;
+            }
+            setStatus('ok', '已打开配置页，请在那里输入 PIN 完成导入');
+            hintEl.textContent = '若配置页没有自动弹出 PIN 输入框，可在配置页「从链接导入」中粘贴本链接。';
+          });
+        } catch (e) {
+          setStatus('err', '打开扩展失败，请手动点开扩展图标 → 配置');
+        }
+      });
+
+      closeBtn.addEventListener('click', function () {
+        overlay.hidden = true;
+        document.body.style.overflow = '';
+        history.replaceState(null, '', location.pathname + location.search);
+      });
+
+      // 「先看看怎么用」跳转到快速上手区，同时收起浮层
+      guideBtn.addEventListener('click', function () {
+        overlay.hidden = true;
+        document.body.style.overflow = '';
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.hidden) closeBtn.click();
+      });
     })();
   </script>
 </body>

@@ -313,3 +313,189 @@ cloudRestoreBtn.addEventListener('click', async () => {
     }
   })
 })
+
+// ===== 导出 / 导入配置链接 =====
+// 链接格式：https://shui-tiao.github.io/kdocs-fetcher/docs/#/import?v=1&d=<密文>&x=<扩展ID>
+// d 为 base64url 编码的加密配置（放在 hash 中，不会随请求发往服务器）
+const EXPORT_LINK_BASE = 'https://shui-tiao.github.io/kdocs-fetcher/docs'
+
+const exportBtn = document.getElementById('exportBtn')
+const exportResult = document.getElementById('exportResult')
+const exportLinkInput = document.getElementById('exportLink')
+const copyExportLinkBtn = document.getElementById('copyExportLink')
+const importBtn = document.getElementById('importBtn')
+const importModal = document.getElementById('importModal')
+const importLinkInput = document.getElementById('importLinkInput')
+const importConfirmBtn = document.getElementById('importConfirmBtn')
+const importCancelBtn = document.getElementById('importCancelBtn')
+
+function bytesToB64Url(bytes) {
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function b64UrlToBytes(str) {
+  const s = String(str).replace(/-/g, '+').replace(/_/g, '/')
+  const pad = s.length % 4 ? '='.repeat(4 - (s.length % 4)) : ''
+  const bin = atob(s + pad)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+function encodeImportData(backup) {
+  return bytesToB64Url(new TextEncoder().encode(JSON.stringify(backup)))
+}
+
+function buildExportLink(backup) {
+  return EXPORT_LINK_BASE + '/#/import?v=1&d=' + encodeImportData(backup) + '&x=' + chrome.runtime.id
+}
+
+// 解析链接（也允许只粘贴 # 后面的片段），取出加密配置对象
+function parseImportLink(raw) {
+  // 长链接被聊天工具转载时常被折行，解析前先去掉所有空白字符
+  const text = String(raw || '').replace(/\s+/g, '')
+  if (!text) throw new Error('请先粘贴配置链接')
+
+  let hash = ''
+  try {
+    hash = new URL(text).hash
+  } catch (_) {
+    hash = text
+  }
+  hash = hash.replace(/^#/, '')
+
+  const q = hash.indexOf('?')
+  if (q < 0 || !hash.slice(0, q).includes('import')) {
+    throw new Error('链接格式不正确，请确认是导出的配置链接')
+  }
+
+  const rawD = new URLSearchParams(hash.slice(q + 1)).get('d')
+  if (!rawD) throw new Error('链接中未找到配置数据')
+  // 长链接经聊天工具转载时可能混入换行，这里一并清理
+  const d = rawD.replace(/\s+/g, '')
+
+  let backup
+  try {
+    backup = JSON.parse(new TextDecoder().decode(b64UrlToBytes(d)))
+  } catch (_) {
+    throw new Error('链接数据已损坏或被截断')
+  }
+  if (!backup || !backup.data) throw new Error('链接中未找到配置数据')
+  return backup
+}
+
+// 打开 PIN 输入框，解密并还原（覆盖当前配置）
+function startImport(backup) {
+  openPinModal({
+    title: '从链接导入配置',
+    desc: '请输入导出时设置的 6 位 PIN 解密还原（将覆盖当前配置）。',
+    confirmText: '解密还原',
+    onSubmit: async (pin) => {
+      let cfg
+      try {
+        cfg = await Migration.decryptConfig(pin, backup)
+      } catch (_) {
+        showToast('PIN 错误或链接数据已损坏')
+        pinModalConfirm.disabled = false
+        return
+      }
+      await chrome.storage.local.set(Migration.sanitizeConfig(cfg))
+      pinModal.classList.add('hidden')
+      showToast('已从链接还原配置，即将刷新页面…', true)
+      setTimeout(() => location.reload(), 1200)
+    }
+  })
+}
+
+exportBtn.addEventListener('click', () => {
+  exportResult.classList.add('hidden')
+  openPinModal({
+    title: '导出配置链接',
+    desc: '请设置 6 位数字 PIN 用于加密配置。PIN 不会被保存，还原时必须输入相同 PIN，请务必牢记。',
+    confirmText: '加密并生成链接',
+    onSubmit: async (pin) => {
+      const cfg = await chrome.storage.local.get(Migration.CONFIG_KEYS)
+      if (!cfg.webhookUrl || !cfg.token) {
+        showToast('请先保存配置（至少包含 Webhook 链接和脚本令牌）')
+        pinModalConfirm.disabled = false
+        return
+      }
+      const backup = await Migration.encryptConfig(pin, cfg)
+      exportLinkInput.value = buildExportLink(backup)
+      pinModal.classList.add('hidden')
+      exportResult.classList.remove('hidden')
+      exportLinkInput.focus()
+      exportLinkInput.select()
+      showToast('已生成配置链接，请保存', true)
+    }
+  })
+})
+
+copyExportLinkBtn.addEventListener('click', async () => {
+  const text = exportLinkInput.value
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    copyExportLinkBtn.textContent = '已复制'
+    setTimeout(() => { copyExportLinkBtn.textContent = '复制' }, 1500)
+  } catch (_) {
+    exportLinkInput.focus()
+    exportLinkInput.select()
+    showToast('复制失败，已选中链接，请手动复制')
+  }
+})
+
+importBtn.addEventListener('click', () => {
+  importLinkInput.value = ''
+  importModal.classList.remove('hidden')
+  importLinkInput.focus()
+})
+
+importCancelBtn.addEventListener('click', () => importModal.classList.add('hidden'))
+
+importConfirmBtn.addEventListener('click', () => {
+  let backup
+  try {
+    backup = parseImportLink(importLinkInput.value)
+  } catch (e) {
+    showToast(e.message)
+    return
+  }
+  importModal.classList.add('hidden')
+  startImport(backup)
+})
+
+importLinkInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') importConfirmBtn.click()
+})
+
+// 从官网链接跳转进入（options.html#/import?...）或官网唤起导入时，自动弹出 PIN 输入框
+let importStarted = false
+
+function beginImport(backup) {
+  if (importStarted) return
+  importStarted = true
+  startImport(backup)
+}
+
+;(async () => {
+  if (!location.hash.includes('import')) return
+  // 锁定时页面会跳去解锁，保留 hash 以便解锁回到本页后再处理
+  if (await Lock.isLocked()) return
+  let backup = null
+  try { backup = parseImportLink(location.href) } catch (_) {}
+  // 清掉 hash，避免刷新后重复弹出
+  history.replaceState(null, '', location.pathname + location.search)
+  if (backup) beginImport(backup)
+})()
+
+// 官网「打开扩展进行导入」把加密配置暂存后打开本页，这里接手
+chrome.storage.local.get('pendingImport', async (res) => {
+  const backup = res.pendingImport
+  if (!backup || !backup.data) return
+  if (await Lock.isLocked()) return
+  chrome.storage.local.remove('pendingImport')
+  beginImport(backup)
+})

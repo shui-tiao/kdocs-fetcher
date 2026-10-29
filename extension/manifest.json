@@ -22,6 +22,12 @@
   "side_panel": {
     "default_path": "wizard.html"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "externally_connectable": {
+    "matches": ["https://shui-tiao.github.io/*"]
+  },
   "permissions": ["storage", "declarativeNetRequest", "sidePanel"],
   "host_permissions": ["https://www.kdocs.cn/*"],
   "declarative_net_request": {
