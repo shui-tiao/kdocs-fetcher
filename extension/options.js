@@ -7,7 +7,18 @@ const urlInput = document.getElementById('webhookUrl')
 const tokenInput = document.getElementById('token')
 const sheetInput = document.getElementById('sheetName')
 const fieldListEl = document.getElementById('fieldList')
-const statusEl = document.getElementById('status')
+const toastEl = document.getElementById('toast')
+let toastTimer = null
+
+// 统一的气泡提示：默认红色错误气泡，传 true 为绿色成功气泡，3 秒后自动消失
+function showToast(msg, ok) {
+  toastEl.textContent = msg
+  toastEl.classList.toggle('ok', Boolean(ok))
+  toastEl.classList.remove('hidden')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000)
+}
+
 const autoCopySelect = document.getElementById('autoCopyField')
 const autoFetchInput = document.getElementById('autoFetch')
 const autoCopySection = document.getElementById('autoCopySection')
@@ -140,25 +151,21 @@ document.getElementById('save').addEventListener('click', () => {
   const autoCopyField = autoCopySelect.value
 
   if (!webhookUrl.startsWith('https://www.kdocs.cn/')) {
-    statusEl.className = 'err'
-    statusEl.textContent = 'Webhook 链接需以 https://www.kdocs.cn/ 开头'
+    showToast('Webhook 链接需以 https://www.kdocs.cn/ 开头')
     return
   }
   if (!token) {
-    statusEl.className = 'err'
-    statusEl.textContent = '脚本令牌不能为空'
+    showToast('脚本令牌不能为空')
     return
   }
   if (!fields.length) {
-    statusEl.className = 'err'
-    statusEl.textContent = '请至少填写一个要拉取的字段'
+    showToast('请至少填写一个要拉取的字段')
     return
   }
 
   chrome.storage.local.set({ webhookUrl, token, sheet, fields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
     savedAutoCopyField = autoCopyField
-    statusEl.className = 'ok'
-    statusEl.textContent = '已保存'
+    showToast('已保存', true)
   })
 })
 
@@ -167,14 +174,12 @@ const lockBtn = document.getElementById('lockBtn')
 const lockModal = document.getElementById('lockModal')
 const pinInput = document.getElementById('pinInput')
 const pinConfirmInput = document.getElementById('pinConfirm')
-const lockErrorEl = document.getElementById('lockError')
 const lockConfirmBtn = document.getElementById('lockConfirm')
 const lockCancelBtn = document.getElementById('lockCancel')
 
 function openLockModal() {
   pinInput.value = ''
   pinConfirmInput.value = ''
-  lockErrorEl.textContent = ''
   lockConfirmBtn.disabled = false
   lockModal.classList.remove('hidden')
   pinInput.focus()
@@ -200,11 +205,11 @@ lockCancelBtn.addEventListener('click', closeLockModal)
 lockConfirmBtn.addEventListener('click', async () => {
   const pin = pinInput.value
   if (!Lock.isSixDigits(pin)) {
-    lockErrorEl.textContent = '请输入 6 位数字 PIN'
+    showToast('请输入 6 位数字 PIN')
     return
   }
   if (pin !== pinConfirmInput.value) {
-    lockErrorEl.textContent = '两次输入的 PIN 不一致'
+    showToast('两次输入的 PIN 不一致')
     return
   }
   lockConfirmBtn.disabled = true
@@ -217,4 +222,94 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.locked && changes.locked.newValue === true) {
     location.replace('unlock.html?return=options')
   }
+})
+
+// ===== 加密迁移：PIN 派生密钥加密配置，经 storage.sync 跨设备同步 =====
+const cloudUploadBtn = document.getElementById('cloudUploadBtn')
+const cloudRestoreBtn = document.getElementById('cloudRestoreBtn')
+const pinModal = document.getElementById('pinModal')
+const pinModalTitle = document.getElementById('pinModalTitle')
+const pinModalDesc = document.getElementById('pinModalDesc')
+const pinModalInput = document.getElementById('pinModalInput')
+const pinModalConfirm = document.getElementById('pinModalConfirm')
+const pinModalCancel = document.getElementById('pinModalCancel')
+
+function openPinModal({ title, desc, confirmText, onSubmit }) {
+  pinModalTitle.textContent = title
+  pinModalDesc.textContent = desc
+  pinModalConfirm.textContent = confirmText
+  pinModalInput.value = ''
+  pinModalConfirm.disabled = false
+  pinModal.classList.remove('hidden')
+  pinModalInput.focus()
+  pinModalConfirm.onclick = async () => {
+    const pin = pinModalInput.value
+    if (!Lock.isSixDigits(pin)) {
+      showToast('请输入 6 位数字 PIN')
+      return
+    }
+    pinModalConfirm.disabled = true
+    try {
+      await onSubmit(pin)
+    } catch (e) {
+      showToast('操作失败：' + (e && e.message ? e.message : '未知错误'))
+      pinModalConfirm.disabled = false
+    }
+  }
+}
+
+pinModalCancel.addEventListener('click', () => pinModal.classList.add('hidden'))
+pinModalInput.addEventListener('input', () => {
+  const digits = pinModalInput.value.replace(/\D/g, '').slice(0, 6)
+  if (digits !== pinModalInput.value) pinModalInput.value = digits
+})
+pinModalInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') pinModalConfirm.click()
+})
+
+cloudUploadBtn.addEventListener('click', () => {
+  openPinModal({
+    title: '迁移到云端',
+    desc: '请设置 6 位数字 PIN 用于加密配置。PIN 不会被保存，还原时必须输入相同 PIN，请务必牢记。',
+    confirmText: '加密并迁移',
+    onSubmit: async (pin) => {
+      const cfg = await chrome.storage.local.get(Migration.CONFIG_KEYS)
+      if (!cfg.webhookUrl || !cfg.token) {
+        showToast('请先保存配置（至少包含 Webhook 链接和脚本令牌）')
+        pinModalConfirm.disabled = false
+        return
+      }
+      const backup = await Migration.encryptConfig(pin, cfg)
+      await chrome.storage.sync.set({ [Migration.SYNC_KEY]: backup })
+      pinModal.classList.add('hidden')
+      showToast('已加密迁移到云端，新设备可通过「从云端移入」还原', true)
+    }
+  })
+})
+
+cloudRestoreBtn.addEventListener('click', async () => {
+  const { [Migration.SYNC_KEY]: backup } = await chrome.storage.sync.get(Migration.SYNC_KEY)
+  if (!backup || !backup.data) {
+    showToast('云端没有可还原的备份数据')
+    return
+  }
+  openPinModal({
+    title: '从云端移入',
+    desc: '检测到云端备份，请输入迁移时设置的 6 位 PIN 解密还原（将覆盖本机当前配置）。',
+    confirmText: '解密还原',
+    onSubmit: async (pin) => {
+      let cfg
+      try {
+        cfg = await Migration.decryptConfig(pin, backup)
+      } catch (_) {
+        showToast('PIN 错误或云端数据已损坏')
+        pinModalConfirm.disabled = false
+        return
+      }
+      await chrome.storage.local.set(Migration.sanitizeConfig(cfg))
+      pinModal.classList.add('hidden')
+      showToast('已从云端还原配置，即将刷新页面…', true)
+      setTimeout(() => location.reload(), 1200)
+    }
+  })
 })

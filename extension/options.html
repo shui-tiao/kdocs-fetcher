@@ -16,9 +16,10 @@
     .field-row .del:hover { background: #e2e5e7; }
     #addField { margin-top: 4px; padding: 6px 14px; background: #f1f3f4; color: #333; }
     #addField:hover { background: #e2e5e7; }
-    #status { margin-top: 12px; font-size: 13px; }
-    #status.ok { color: #188038; }
-    #status.err { color: #d93025; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; box-sizing: border-box; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: #d93025; border-radius: 999px; box-shadow: 0 4px 12px rgba(217, 48, 37, .4); animation: toast-in .2s ease-out; }
+    .toast.ok { background: #188038; box-shadow: 0 4px 12px rgba(24, 128, 56, .4); }
+    .toast.hidden { display: none; }
+    @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
     .tip { font-size: 12px; color: #888; margin-top: 4px; }
     .radio { display: block; font-size: 13px; margin: 4px 0; }
     .radio input { width: auto; margin-right: 6px; }
@@ -40,7 +41,6 @@
     .modal h3 { font-size: 15px; margin: 0 0 8px; }
     .modal p { font-size: 12px; line-height: 1.7; color: #666; margin: 0 0 12px; }
     .modal input { letter-spacing: 4px; }
-    .modal-error { min-height: 18px; margin-top: 8px; font-size: 12px; color: #d93025; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
     .modal-actions button { margin-top: 0; }
     .modal-actions .secondary { background: #f1f3f4; color: #333; }
@@ -76,7 +76,6 @@
     <div class="tip">选择后，点击拓展图标获取数据时会自动把该字段内容复制到剪贴板</div>
   </div>
   <button id="save">保存</button>
-  <div id="status"></div>
 
   <div class="section">
     <h2>安全</h2>
@@ -89,6 +88,37 @@
     </div>
   </div>
 
+  <div class="section">
+    <h2>加密迁移</h2>
+    <div class="lock-row">
+      <div class="lock-text">
+        <b>迁移到云端</b>
+        将当前已保存的配置（含脚本令牌）用 6 位 PIN 加密后存入浏览器账号云同步，换设备登录同一账号即可还原。
+      </div>
+      <button id="cloudUploadBtn" type="button">迁移到云端</button>
+    </div>
+    <div class="lock-row">
+      <div class="lock-text">
+        <b>从云端移入</b>
+        扫描云端是否有备份，如有则输入迁移时设置的 6 位 PIN 解密还原到本机（将覆盖当前配置）。
+      </div>
+      <button id="cloudRestoreBtn" type="button">从云端移入</button>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3 id="pinModalTitle"></h3>
+      <p id="pinModalDesc"></p>
+      <label for="pinModalInput">PIN 密码</label>
+      <input id="pinModalInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
+      <div class="modal-actions">
+        <button id="pinModalCancel" class="secondary" type="button">取消</button>
+        <button id="pinModalConfirm" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
   <div id="lockModal" class="modal-mask hidden">
     <div class="modal">
       <h3>设置解锁 PIN</h3>
@@ -97,7 +127,6 @@
       <input id="pinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
       <label for="pinConfirm">再次输入 PIN</label>
       <input id="pinConfirm" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
-      <div id="lockError" class="modal-error"></div>
       <div class="modal-actions">
         <button id="lockCancel" class="secondary" type="button">取消</button>
         <button id="lockConfirm" type="button">确定锁定</button>
@@ -105,7 +134,10 @@
     </div>
   </div>
 
+  <div id="toast" class="toast hidden"></div>
+
   <script src="lock.js"></script>
+  <script src="migration.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
