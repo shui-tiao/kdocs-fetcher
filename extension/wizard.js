@@ -1,5 +1,10 @@
 const TOTAL = 6
 
+// 已锁定时向导不可使用，跳转到解锁界面
+;(async () => {
+  if (await Lock.isLocked()) location.replace('unlock.html?return=wizard')
+})()
+
 const barEl = document.getElementById('bar')
 const stepLabelEl = document.getElementById('stepLabel')
 const prevBtn = document.getElementById('prev')
@@ -10,6 +15,7 @@ const webhookInput = document.getElementById('webhookUrl')
 const copyCodeBtn = document.getElementById('copyCode')
 const copyStatusEl = document.getElementById('copyStatus')
 const summaryEl = document.getElementById('summary')
+const closeTipEl = document.getElementById('closeTip')
 
 let step = 1
 let codeText = ''
@@ -45,8 +51,10 @@ function render() {
   stepLabelEl.textContent = '第 ' + step + ' / ' + TOTAL + ' 步'
   barEl.style.width = (step / TOTAL) * 100 + '%'
   prevBtn.disabled = step === 1
+  nextBtn.disabled = false
+  closeTipEl.hidden = true
   if (step === 6) {
-    nextBtn.textContent = '完成并退出'
+    nextBtn.textContent = '保存'
   } else if (step === 4 || step === 5) {
     nextBtn.textContent = '保存并进入下一步'
   } else {
@@ -73,16 +81,11 @@ async function goNext() {
     await saveConfig({ webhookUrl })
   } else if (step === 6) {
     await saveConfig({ token: tokenInput.value.trim(), webhookUrl: webhookInput.value.trim() })
-    // 向导以弹窗打开时：通知已打开的配置页刷新，关闭弹窗，并在标签页中打开扩展设置
-    chrome.windows.getCurrent((win) => {
-      if (win && win.type === 'popup') {
-        chrome.runtime.sendMessage({ type: 'config-updated' }, () => void chrome.runtime.lastError)
-        chrome.runtime.openOptionsPage()
-        chrome.windows.remove(win.id)
-      } else {
-        location.href = 'options.html'
-      }
-    })
+    // 侧边栏内无法自行关闭：通知配置页刷新，并标记完成
+    chrome.runtime.sendMessage({ type: 'config-updated' }, () => void chrome.runtime.lastError)
+    nextBtn.textContent = '已保存，可关闭侧边栏'
+    nextBtn.disabled = true
+    closeTipEl.hidden = false
     return
   }
   if (step < TOTAL) {
@@ -92,21 +95,13 @@ async function goNext() {
 }
 
 async function copyToClipboard(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text)
-      return true
-    } catch (_) {}
+  if (!navigator.clipboard) return false
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch (_) {
+    return false
   }
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.style.position = 'fixed'
-  ta.style.opacity = '0'
-  document.body.appendChild(ta)
-  ta.select()
-  const ok = document.execCommand('copy')
-  document.body.removeChild(ta)
-  return ok
 }
 
 async function loadCode() {

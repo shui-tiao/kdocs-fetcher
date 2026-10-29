@@ -17,18 +17,13 @@ function showError(msg) {
 }
 
 async function copyToClipboard(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    try { await navigator.clipboard.writeText(text); return true } catch (_) {}
+  if (!navigator.clipboard) return false
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch (_) {
+    return false
   }
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.style.position = 'fixed'
-  ta.style.opacity = '0'
-  document.body.appendChild(ta)
-  ta.select()
-  const ok = document.execCommand('copy')
-  document.body.removeChild(ta)
-  return ok
 }
 
 async function renderFields(list, autoCopyField) {
@@ -109,6 +104,12 @@ async function renderFields(list, autoCopyField) {
 }
 
 async function fetchLatest() {
+  // 已锁定：不发起任何 webhook 请求，直接进入解锁界面
+  if (await Lock.isLocked()) {
+    location.replace('unlock.html?return=popup')
+    return
+  }
+
   fieldsEl.innerHTML = ''
   statusEl.className = 'loading'
   statusEl.textContent = '加载中…'
@@ -195,4 +196,17 @@ copyBtn.addEventListener('click', async () => {
 refreshBtn.addEventListener('click', fetchLatest)
 openOptionsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage())
 
-fetchLatest()
+// 未关闭「自动拉取字段」时，打开弹窗即自动拉取；关闭时等待手动点击「重新获取」
+;(async () => {
+  if (await Lock.isLocked()) {
+    location.replace('unlock.html?return=popup')
+    return
+  }
+  const cfg = await chrome.storage.local.get('autoFetch')
+  if (cfg.autoFetch === false) {
+    statusEl.className = 'loading'
+    statusEl.textContent = '已关闭自动拉取，点击「重新获取」获取数据'
+    return
+  }
+  fetchLatest()
+})()

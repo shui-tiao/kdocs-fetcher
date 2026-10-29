@@ -1,8 +1,24 @@
+// 已锁定时配置页一律跳转到解锁界面
+;(async () => {
+  if (await Lock.isLocked()) location.replace('unlock.html?return=options')
+})()
+
 const urlInput = document.getElementById('webhookUrl')
 const tokenInput = document.getElementById('token')
 const fieldListEl = document.getElementById('fieldList')
 const statusEl = document.getElementById('status')
 const autoCopySelect = document.getElementById('autoCopyField')
+const autoFetchInput = document.getElementById('autoFetch')
+const autoCopySection = document.getElementById('autoCopySection')
+
+// 关闭自动拉取后，自动复制字段失去意义：重置为不自动复制并隐藏
+function syncAutoFetchUI() {
+  const enabled = autoFetchInput.checked
+  autoCopySection.hidden = !enabled
+  if (!enabled) autoCopySelect.value = ''
+}
+
+autoFetchInput.addEventListener('change', syncAutoFetchUI)
 
 let savedAutoCopyField = ''
 
@@ -72,18 +88,28 @@ function refreshAutoCopyOptions() {
   }
 }
 
-chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyField'], (cfg) => {
+chrome.storage.local.get(['webhookUrl', 'token', 'fields', 'order', 'autoCopyField', 'autoFetch'], (cfg) => {
   if (cfg.webhookUrl) urlInput.value = cfg.webhookUrl
   if (cfg.token) tokenInput.value = cfg.token
   const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
   fields.forEach((f) => fieldListEl.appendChild(createFieldRow(f)))
   const order = cfg.order === 'top' ? 'top' : 'bottom'
   document.querySelector('input[name="order"][value="' + order + '"]').checked = true
+  autoFetchInput.checked = cfg.autoFetch !== false
   savedAutoCopyField = cfg.autoCopyField || ''
   refreshAutoCopyOptions()
+  syncAutoFetchUI()
 })
 
-document.getElementById('openWizard').addEventListener('click', () => {
+document.getElementById('openWizard').addEventListener('click', async () => {
+  // 优先在侧边栏打开；浏览器不支持 sidePanel 时回退为弹窗
+  if (chrome.sidePanel && chrome.sidePanel.open) {
+    try {
+      const win = await chrome.windows.getCurrent()
+      await chrome.sidePanel.open({ windowId: win.id })
+      return
+    } catch (_) {}
+  }
   chrome.windows.create({
     url: chrome.runtime.getURL('wizard.html'),
     type: 'popup',
@@ -126,9 +152,66 @@ document.getElementById('save').addEventListener('click', () => {
     return
   }
 
-  chrome.storage.local.set({ webhookUrl, token, fields, order, autoCopyField }, () => {
+  chrome.storage.local.set({ webhookUrl, token, fields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
     savedAutoCopyField = autoCopyField
     statusEl.className = 'ok'
     statusEl.textContent = '已保存'
   })
+})
+
+// 锁定：设置 6 位数字 PIN 后进入锁定状态
+const lockBtn = document.getElementById('lockBtn')
+const lockModal = document.getElementById('lockModal')
+const pinInput = document.getElementById('pinInput')
+const pinConfirmInput = document.getElementById('pinConfirm')
+const lockErrorEl = document.getElementById('lockError')
+const lockConfirmBtn = document.getElementById('lockConfirm')
+const lockCancelBtn = document.getElementById('lockCancel')
+
+function openLockModal() {
+  pinInput.value = ''
+  pinConfirmInput.value = ''
+  lockErrorEl.textContent = ''
+  lockConfirmBtn.disabled = false
+  lockModal.classList.remove('hidden')
+  pinInput.focus()
+}
+
+function closeLockModal() {
+  lockModal.classList.add('hidden')
+}
+
+for (const input of [pinInput, pinConfirmInput]) {
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '').slice(0, 6)
+    if (digits !== input.value) input.value = digits
+  })
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') lockConfirmBtn.click()
+  })
+}
+
+lockBtn.addEventListener('click', openLockModal)
+lockCancelBtn.addEventListener('click', closeLockModal)
+
+lockConfirmBtn.addEventListener('click', async () => {
+  const pin = pinInput.value
+  if (!Lock.isSixDigits(pin)) {
+    lockErrorEl.textContent = '请输入 6 位数字 PIN'
+    return
+  }
+  if (pin !== pinConfirmInput.value) {
+    lockErrorEl.textContent = '两次输入的 PIN 不一致'
+    return
+  }
+  lockConfirmBtn.disabled = true
+  await Lock.lock(pin)
+  location.replace('unlock.html?return=options')
+})
+
+// 其他标签页锁定扩展时，本页也自动跳转解锁界面
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.locked && changes.locked.newValue === true) {
+    location.replace('unlock.html?return=options')
+  }
 })

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "zh_CN",
   "name": "__MSG_appName__",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "__MSG_appDesc__",
   "icons": {
     "16": "icons/icon16.png",
@@ -19,7 +19,10 @@
     }
   },
   "options_page": "options.html",
-  "permissions": ["storage", "declarativeNetRequest"],
+  "side_panel": {
+    "default_path": "wizard.html"
+  },
+  "permissions": ["storage", "declarativeNetRequest", "sidePanel"],
   "host_permissions": ["https://www.kdocs.cn/*"],
   "declarative_net_request": {
     "rule_resources": [
