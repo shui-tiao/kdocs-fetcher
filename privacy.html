@@ -237,6 +237,11 @@
           <td>仅用于修改发往金山文档接口的请求头使其符合规范</td>
         </tr>
         <tr>
+          <td><code>sidePanel</code></td>
+          <td>在侧边栏中显示内容</td>
+          <td>仅用于在浏览器侧边栏中打开本扩展自带的「配置向导」页面（wizard.html），方便分步完成首次配置；不支持侧边栏的浏览器会自动回退为普通弹窗。不读取、不修改任何网页内容。</td>
+        </tr>
+        <tr>
           <td><code>host_permissions</code><br>（<code>https://www.kdocs.cn/*</code>）</td>
           <td>读取和更改 www.kdocs.cn 上的数据</td>
           <td>仅用于向金山文档 Webhook 发起 HTTPS 请求，无法访问其他网站。</td>
