@@ -358,17 +358,20 @@ const pinModalInput = document.getElementById('pinModalInput')
 const pinModalConfirm = document.getElementById('pinModalConfirm')
 const pinModalCancel = document.getElementById('pinModalCancel')
 
-function openPinModal({ title, desc, confirmText, onSubmit }) {
+function openPinModal({ title, desc, confirmText, onSubmit, skipPin }) {
   pinModalTitle.textContent = title
   pinModalDesc.textContent = desc
   pinModalConfirm.textContent = confirmText
   pinModalInput.value = ''
+  pinModalInput.classList.toggle('hidden', !!skipPin)
+  const inputLabel = pinModalInput.previousElementSibling
+  if (inputLabel && inputLabel.tagName === 'LABEL') inputLabel.classList.toggle('hidden', !!skipPin)
   pinModalConfirm.disabled = false
   pinModal.classList.remove('hidden')
-  pinModalInput.focus()
+  if (!skipPin) pinModalInput.focus()
   pinModalConfirm.onclick = async () => {
     const pin = pinModalInput.value
-    if (!Lock.isSixDigits(pin)) {
+    if (!skipPin && !Lock.isSixDigits(pin)) {
       showToast('请输入 6 位数字 PIN')
       return
     }
@@ -439,6 +442,63 @@ cloudRestoreBtn.addEventListener('click', async () => {
       pinModal.classList.add('hidden')
       showToast('已从云端还原配置，即将刷新页面…', true)
       setTimeout(() => location.reload(), 1200)
+    }
+  })
+})
+
+// ===== 清除云端数据 =====
+const cloudClearBtn = document.getElementById('cloudClearBtn')
+cloudClearBtn.addEventListener('click', async () => {
+  showToast('正在扫描云端数据…')
+  let all
+  try {
+    all = await chrome.storage.sync.get(null)
+  } catch (e) {
+    showToast('扫描失败：' + (e && e.message ? e.message : '未知错误'))
+    return
+  }
+  const hasBackup = !!(all && all[Migration.SYNC_KEY] && all[Migration.SYNC_KEY].data)
+  const otherKeys = Object.keys(all || {}).filter((k) => k !== Migration.SYNC_KEY)
+  const totalKeys = (hasBackup ? 1 : 0) + otherKeys.length
+  if (totalKeys === 0) {
+    showToast('云端暂无数据，无需清除', true)
+    return
+  }
+  const backupMsg = hasBackup ? '检测到一份本扩展的加密备份。' : ''
+  const otherMsg = otherKeys.length
+    ? `另外还有 ${otherKeys.length} 项其他同步数据。`
+    : ''
+  openPinModal({
+    title: '清除云端数据',
+    desc: (backupMsg || otherMsg) + (backupMsg && otherMsg ? '<br>' : '') + '确认后将执行「清除云端数据」，这些数据将无法恢复。本机配置不会受到影响。',
+    confirmText: '确认清除',
+    skipPin: true,
+    onSubmit: async () => {
+      pinModal.classList.add('hidden')
+      showToast('正在清除云端数据…')
+      try {
+        await chrome.storage.sync.clear()
+      } catch (e) {
+        showToast('清除失败：' + (e && e.message ? e.message : '未知错误'))
+        return
+      }
+      // 复扫验证
+      let verify
+      try {
+        verify = await chrome.storage.sync.get(null)
+      } catch (e) {
+        showToast('已清除，但复扫验证失败：' + (e && e.message ? e.message : '未知错误'))
+        return
+      }
+      const remainingKeys = Object.keys(verify || {})
+      if (remainingKeys.length === 0) {
+        showToast('云端数据已全部清除', true)
+      } else if (remainingKeys.length === 1 && verify[Migration.SYNC_KEY] && !verify[Migration.SYNC_KEY].data) {
+        // 浏览器可能保留了空壳 key
+        showToast('云端备份已清除干净，浏览器保留了一项空壳条目（无需处理）', true)
+      } else {
+        showToast(`清除后仍有 ${remainingKeys.length} 项数据残留：${remainingKeys.join('、')}，请稍后再试或手动清理`)
+      }
     }
   })
 })
