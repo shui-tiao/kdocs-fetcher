@@ -442,6 +442,5 @@ chrome.storage.local.get(['token', 'webhookUrl', 'sheet', 'fields'], (cfg) => {
   if (cfg.webhookUrl) webhookInput.value = cfg.webhookUrl
   if (cfg.sheet) savedSheet = cfg.sheet
   if (Array.isArray(cfg.fields) && cfg.fields.length) fieldsInput.value = cfg.fields.join(',')
-  else fieldsInput.value = '内容'
   render()
 })

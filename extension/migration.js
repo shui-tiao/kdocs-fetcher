@@ -6,7 +6,7 @@
   else root.Migration = api
 })(typeof window !== 'undefined' ? window : globalThis, () => {
   const SYNC_KEY = 'cloudBackup'
-  const CONFIG_KEYS = ['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch']
+  const CONFIG_KEYS = ['webhookUrl', 'token', 'sheet', 'fields', 'displayFields', 'order', 'autoCopyField', 'autoFetch']
 
   function b64encode(buf) {
     return btoa(String.fromCharCode(...new Uint8Array(buf)))

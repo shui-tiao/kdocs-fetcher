@@ -26,6 +26,20 @@ async function copyToClipboard(text) {
   }
 }
 
+// 按展示字段配置过滤并排序；未配置过（非数组）时展示全部
+function filterDisplayFields(list, displayFields) {
+  if (!Array.isArray(displayFields)) return list
+  const out = []
+  for (const df of displayFields) {
+    // 与自动复制一致：去掉 「=列字母」「:date」 等修饰后按显示名匹配
+    const base = String(df).split('=')[0].split(':')[0].trim()
+    if (!base) continue
+    const hit = list.find((f) => f && f.name === base && !out.includes(f))
+    if (hit) out.push(hit)
+  }
+  return out
+}
+
 async function renderFields(list, autoCopyField) {
   fieldsEl.innerHTML = ''
   const lines = []
@@ -116,15 +130,25 @@ async function fetchLatest() {
   statusEl.classList.remove('hidden')
   copyBtn.disabled = true
 
-  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField'])
+  const cfg = await chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'displayFields'])
   if (!cfg.webhookUrl || !cfg.token) {
-    showError('尚未配置 Webhook 链接或脚本令牌')
+    // 精确指出缺了哪项，并标出当前扩展的版本与 ID，便于区分是否装了两份副本
+    // （不同安装路径的副本扩展 ID 不同，存储互不相通）
+    const missing = []
+    if (!cfg.webhookUrl) missing.push('Webhook 链接')
+    if (!cfg.token) missing.push('脚本令牌')
+    const tag = 'v' + chrome.runtime.getManifest().version + ' / ' + String(chrome.runtime.id).slice(-6)
+    showError('尚未配置：' + missing.join('、') + '（当前扩展 ' + tag + '）。若已在配置页保存或导入，说明该副本与配置页不是同一份，请到 chrome://extensions 只保留一个本扩展')
     openOptionsBtn.classList.remove('hidden')
     return
   }
   openOptionsBtn.classList.add('hidden')
 
-  const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
+  const fields = Array.isArray(cfg.fields) ? cfg.fields : []
+  if (!fields.length) {
+    showError('尚未配置要拉取的字段，请到配置页「连接」中添加')
+    return
+  }
   const order = cfg.order === 'top' ? 'top' : 'bottom'
   const argv = { fields, order }
   if (cfg.sheet) argv.sheet = cfg.sheet
@@ -182,7 +206,13 @@ async function fetchLatest() {
     return
   }
 
-  await renderFields(result.fields, cfg.autoCopyField || '')
+  const displayed = filterDisplayFields(result.fields, cfg.displayFields)
+  if (Array.isArray(cfg.displayFields) && !displayed.length) {
+    showError('没有可展示的字段，请到配置页「主页 → 要展示的字段」检查配置')
+    return
+  }
+
+  await renderFields(displayed, cfg.autoCopyField || '')
   statusEl.className = 'loading'
   statusEl.textContent = result.mode === 'data_table' ? '多维表格模式' : '电子表格模式'
   statusEl.classList.remove('hidden')

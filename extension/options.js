@@ -7,8 +7,27 @@ const urlInput = document.getElementById('webhookUrl')
 const tokenInput = document.getElementById('token')
 const sheetInput = document.getElementById('sheetName')
 const fieldListEl = document.getElementById('fieldList')
+const displayListEl = document.getElementById('displayList')
 const toastEl = document.getElementById('toast')
 let toastTimer = null
+
+// ===== 标签页切换：主页 / 连接 / 配置 =====
+const TAB_NAMES = ['home', 'connect', 'config']
+
+function switchTab(name) {
+  if (!TAB_NAMES.includes(name)) name = 'home'
+  for (const btn of document.querySelectorAll('.tab')) {
+    btn.classList.toggle('active', btn.dataset.tab === name)
+  }
+  for (const panel of document.querySelectorAll('.tab-panel')) {
+    panel.classList.toggle('active', panel.id === 'tab-' + name)
+  }
+}
+
+for (const btn of document.querySelectorAll('.tab')) {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab))
+}
+switchTab(location.hash.replace(/^#/, ''))
 
 // 统一的气泡提示：默认红色错误气泡，传 true 为绿色成功气泡，3 秒后自动消失
 function showToast(msg, ok) {
@@ -19,18 +38,7 @@ function showToast(msg, ok) {
   toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000)
 }
 
-const autoCopySelect = document.getElementById('autoCopyField')
 const autoFetchInput = document.getElementById('autoFetch')
-const autoCopySection = document.getElementById('autoCopySection')
-
-// 关闭自动拉取后，自动复制字段失去意义：重置为不自动复制并隐藏
-function syncAutoFetchUI() {
-  const enabled = autoFetchInput.checked
-  autoCopySection.hidden = !enabled
-  if (!enabled) autoCopySelect.value = ''
-}
-
-autoFetchInput.addEventListener('change', syncAutoFetchUI)
 
 let savedAutoCopyField = ''
 
@@ -41,7 +49,6 @@ function createFieldRow(value) {
   input.type = 'text'
   input.placeholder = '表头名（如 内容），或 显示名=列字母（如 机构=E）'
   input.value = value || ''
-  input.addEventListener('input', refreshAutoCopyOptions)
   const del = document.createElement('button')
   del.type = 'button'
   del.className = 'del'
@@ -51,7 +58,6 @@ function createFieldRow(value) {
     if (!fieldListEl.children.length) {
       fieldListEl.appendChild(createFieldRow(''))
     }
-    refreshAutoCopyOptions()
   })
   row.appendChild(input)
   row.appendChild(del)
@@ -71,47 +77,165 @@ function getFields() {
   return fields
 }
 
-function extractBaseName(raw) {
-  // raw 可能是 "内容" / "机构=E" / "日期:date" / "机构=E:date"
-  return raw.split('=')[0].split(':')[0].trim()
+// ===== 展示字段（主页）：默认展示全部拉取字段，可删除/恢复、拖拽排序，点击高亮即设为自动复制 =====
+const removedEl = document.getElementById('removedDisplay')
+const removedSection = document.getElementById('removedSection')
+const displayEmptyTip = document.getElementById('displayEmptyTip')
+
+let removedFields = [] // 已删除的展示字段
+let autoCopyField = '' // 高亮的自动复制字段
+let draggingRow = null
+
+function setHighlight(name) {
+  autoCopyField = name
+  for (const row of displayListEl.children) {
+    row.classList.toggle('highlight', row.dataset.name === name)
+  }
 }
 
-function refreshAutoCopyOptions() {
-  const current = autoCopySelect.value
-  autoCopySelect.innerHTML = ''
-  const noneOpt = document.createElement('option')
-  noneOpt.value = ''
-  noneOpt.textContent = '不自动复制'
-  autoCopySelect.appendChild(noneOpt)
-  for (const raw of getFields()) {
-    const opt = document.createElement('option')
-    opt.value = raw
-    const base = extractBaseName(raw)
-    opt.textContent = raw === base ? raw : base + '（' + raw + '）'
-    autoCopySelect.appendChild(opt)
+function updateDisplayUI() {
+  displayEmptyTip.classList.toggle('hidden', displayListEl.children.length > 0)
+  removedSection.classList.toggle('hidden', !removedFields.length)
+}
+
+function visibleNames() {
+  return [...displayListEl.children].map((row) => row.dataset.name)
+}
+
+function buildRemovedList() {
+  removedEl.innerHTML = ''
+  for (const name of removedFields) {
+    const row = document.createElement('div')
+    row.className = 'removed-row'
+    const nameEl = document.createElement('span')
+    nameEl.className = 'removed-name'
+    nameEl.textContent = name
+    const restore = document.createElement('button')
+    restore.type = 'button'
+    restore.className = 'restore'
+    restore.textContent = '恢复'
+    restore.addEventListener('click', () => {
+      removedFields = removedFields.filter((n) => n !== name)
+      displayListEl.appendChild(createDisplayRow(name))
+      buildRemovedList()
+      updateDisplayUI()
+    })
+    row.appendChild(nameEl)
+    row.appendChild(restore)
+    removedEl.appendChild(row)
   }
-  // 恢复之前的选择（如果还存在）
-  if ([...autoCopySelect.options].some((o) => o.value === current)) {
-    autoCopySelect.value = current
-  } else if ([...autoCopySelect.options].some((o) => o.value === savedAutoCopyField)) {
-    autoCopySelect.value = savedAutoCopyField
+}
+
+function removeDisplayField(name) {
+  const row = [...displayListEl.children].find((r) => r.dataset.name === name)
+  if (row) row.remove()
+  if (autoCopyField === name) autoCopyField = ''
+  removedFields.push(name)
+  buildRemovedList()
+  updateDisplayUI()
+}
+
+function createDisplayRow(name) {
+  const row = document.createElement('div')
+  row.className = 'display-row'
+  row.dataset.name = name
+  row.draggable = true
+
+  const handle = document.createElement('span')
+  handle.className = 'drag-handle'
+  handle.title = '拖拽排序'
+  handle.textContent = '≡'
+
+  const nameEl = document.createElement('span')
+  nameEl.className = 'display-name'
+  nameEl.textContent = name
+
+  const del = document.createElement('button')
+  del.type = 'button'
+  del.className = 'del'
+  del.textContent = '删除'
+  del.addEventListener('click', (e) => {
+    e.stopPropagation()
+    removeDisplayField(name)
+  })
+
+  row.appendChild(handle)
+  row.appendChild(nameEl)
+  row.appendChild(del)
+
+  // 点击高亮 = 设为自动复制；再次点击取消
+  row.addEventListener('click', () => {
+    setHighlight(row.classList.contains('highlight') ? '' : name)
+  })
+
+  row.addEventListener('dragstart', (e) => {
+    draggingRow = row
+    row.classList.add('dragging')
+    e.dataTransfer.effectAllowed = 'move'
+    try { e.dataTransfer.setData('text/plain', name) } catch (_) {}
+  })
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging')
+    draggingRow = null
+  })
+
+  return row
+}
+
+displayListEl.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  if (!draggingRow) return
+  const target = e.target.closest('.display-row')
+  if (!target || target === draggingRow) return
+  const rect = target.getBoundingClientRect()
+  const before = e.clientY < rect.top + rect.height / 2
+  displayListEl.insertBefore(draggingRow, before ? target : target.nextSibling)
+})
+
+// 依据拉取字段与已保存的展示字段重建列表；未保存过时展示全部拉取字段
+function rebuildDisplayList(pullFields, saved) {
+  let vis
+  if (Array.isArray(saved)) {
+    vis = saved.filter((n) => pullFields.includes(n))
+    removedFields = pullFields.filter((n) => !vis.includes(n))
   } else {
-    autoCopySelect.value = ''
+    vis = [...pullFields]
+    removedFields = []
   }
+  displayListEl.innerHTML = ''
+  for (const name of vis) displayListEl.appendChild(createDisplayRow(name))
+  if (savedAutoCopyField && vis.includes(savedAutoCopyField)) setHighlight(savedAutoCopyField)
+  else autoCopyField = ''
+  buildRemovedList()
+  updateDisplayUI()
 }
 
-chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch'], (cfg) => {
+// 保存后同步：合并本次会话中新增的拉取字段，移除已不存在的展示字段
+function syncDisplayListWithPulls(pullFields) {
+  const vis = visibleNames().filter((n) => pullFields.includes(n))
+  removedFields = removedFields.filter((n) => pullFields.includes(n))
+  for (const p of pullFields) {
+    if (!vis.includes(p) && !removedFields.includes(p)) vis.push(p)
+  }
+  if (autoCopyField && !vis.includes(autoCopyField)) autoCopyField = ''
+  displayListEl.innerHTML = ''
+  for (const name of vis) displayListEl.appendChild(createDisplayRow(name))
+  if (autoCopyField) setHighlight(autoCopyField)
+  buildRemovedList()
+  updateDisplayUI()
+}
+
+chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch', 'displayFields'], (cfg) => {
   if (cfg.webhookUrl) urlInput.value = cfg.webhookUrl
   if (cfg.token) tokenInput.value = cfg.token
   if (cfg.sheet) sheetInput.value = cfg.sheet
-  const fields = Array.isArray(cfg.fields) && cfg.fields.length ? cfg.fields : ['内容']
+  const fields = Array.isArray(cfg.fields) ? cfg.fields : []
   fields.forEach((f) => fieldListEl.appendChild(createFieldRow(f)))
+  savedAutoCopyField = cfg.autoCopyField || ''
+  rebuildDisplayList(fields, cfg.displayFields)
   const order = cfg.order === 'top' ? 'top' : 'bottom'
   document.querySelector('input[name="order"][value="' + order + '"]').checked = true
   autoFetchInput.checked = cfg.autoFetch !== false
-  savedAutoCopyField = cfg.autoCopyField || ''
-  refreshAutoCopyOptions()
-  syncAutoFetchUI()
 })
 
 document.getElementById('openWizard').addEventListener('click', async () => {
@@ -138,36 +262,36 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 document.getElementById('addField').addEventListener('click', () => {
   fieldListEl.appendChild(createFieldRow(''))
-  refreshAutoCopyOptions()
 })
 
-document.getElementById('save').addEventListener('click', () => {
-  const webhookUrl = urlInput.value.trim()
-  const token = tokenInput.value.trim()
-  const sheet = sheetInput.value.trim()
-  const fields = getFields()
-  const orderEl = document.querySelector('input[name="order"]:checked')
-  const order = orderEl ? orderEl.value : 'bottom'
-  const autoCopyField = autoCopySelect.value
+for (const saveBtn of document.querySelectorAll('.save')) {
+  saveBtn.addEventListener('click', () => {
+    const webhookUrl = urlInput.value.trim()
+    const token = tokenInput.value.trim()
+    const sheet = sheetInput.value.trim()
+    const fields = getFields()
+    const displayFields = visibleNames()
+    const orderEl = document.querySelector('input[name="order"]:checked')
+    const order = orderEl ? orderEl.value : 'bottom'
 
-  if (!webhookUrl.startsWith('https://www.kdocs.cn/')) {
-    showToast('Webhook 链接需以 https://www.kdocs.cn/ 开头')
-    return
-  }
-  if (!token) {
-    showToast('脚本令牌不能为空')
-    return
-  }
-  if (!fields.length) {
-    showToast('请至少填写一个要拉取的字段')
-    return
-  }
+    if (!webhookUrl.startsWith('https://www.kdocs.cn/')) {
+      showToast('Webhook 链接需以 https://www.kdocs.cn/ 开头')
+      return
+    }
+    if (!token) {
+      showToast('脚本令牌不能为空')
+      return
+    }
 
-  chrome.storage.local.set({ webhookUrl, token, sheet, fields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
-    savedAutoCopyField = autoCopyField
-    showToast('已保存', true)
+    // 允许暂不填写拉取字段（可后补），弹窗会提示去配置页添加
+    const noFields = !fields.length
+    chrome.storage.local.set({ webhookUrl, token, sheet, fields, displayFields, order, autoCopyField, autoFetch: autoFetchInput.checked }, () => {
+      savedAutoCopyField = autoCopyField
+      showToast(noFields ? '已保存，但尚未填写要拉取的字段，请到「连接」页添加' : '已保存', true)
+      syncDisplayListWithPulls(fields)
+    })
   })
-})
+}
 
 // 锁定：设置 6 位数字 PIN 后进入锁定状态
 const lockBtn = document.getElementById('lockBtn')
@@ -306,6 +430,11 @@ cloudRestoreBtn.addEventListener('click', async () => {
         pinModalConfirm.disabled = false
         return
       }
+      if (!cfg.webhookUrl || !cfg.token) {
+        showToast('云端数据缺少 Webhook 链接或脚本令牌，已取消还原')
+        pinModalConfirm.disabled = false
+        return
+      }
       await chrome.storage.local.set(Migration.sanitizeConfig(cfg))
       pinModal.classList.add('hidden')
       showToast('已从云端还原配置，即将刷新页面…', true)
@@ -398,6 +527,11 @@ function startImport(backup) {
         cfg = await Migration.decryptConfig(pin, backup)
       } catch (_) {
         showToast('PIN 错误或链接数据已损坏')
+        pinModalConfirm.disabled = false
+        return
+      }
+      if (!cfg.webhookUrl || !cfg.token) {
+        showToast('导入的数据缺少 Webhook 链接或脚本令牌，已取消还原')
         pinModalConfirm.disabled = false
         return
       }

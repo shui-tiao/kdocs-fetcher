@@ -6,6 +6,13 @@
   <style>
     body { font-family: "Microsoft YaHei", sans-serif; width: 420px; margin: 24px auto; color: #333; }
     h1 { font-size: 16px; margin-bottom: 16px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #e8eaed; }
+    .tab { margin-top: 0; padding: 8px 0; width: 33%; background: none; color: #666; font-size: 14px; border-radius: 4px 4px 0 0; border-bottom: 2px solid transparent; margin-bottom: -2px; box-sizing: border-box; }
+    .tab:hover { background: #f1f3f4; color: #333; }
+    .tab.active { color: #1a73e8; font-weight: bold; border-bottom-color: #1a73e8; background: none; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .hidden { display: none; }
     label { display: block; font-size: 13px; margin: 12px 0 4px; }
     input, select { width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
     button { margin-top: 16px; padding: 8px 20px; font-size: 13px; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
@@ -16,6 +23,21 @@
     .field-row .del:hover { background: #e2e5e7; }
     #addField { margin-top: 4px; padding: 6px 14px; background: #f1f3f4; color: #333; }
     #addField:hover { background: #e2e5e7; }
+    .save { margin-top: 20px; }
+    .display-list { margin-top: 4px; }
+    .display-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px 10px; background: #fff; border: 1px solid #ccc; border-radius: 4px; cursor: grab; user-select: none; }
+    .display-row:hover { border-color: #999; }
+    .display-row.dragging { opacity: .5; }
+    .display-row.highlight { border-color: #1a73e8; background: #e8f0fe; }
+    .display-row .drag-handle { flex-shrink: 0; color: #888; font-size: 14px; cursor: grab; }
+    .display-row .display-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .display-row .del, .removed-row .restore { flex-shrink: 0; margin-top: 0; padding: 4px 10px; font-size: 12px; background: #f1f3f4; color: #333; }
+    .display-row .del:hover { background: #e2e5e7; }
+    .removed-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding: 6px 10px; background: #f8f9fa; border: 1px dashed #ccc; border-radius: 4px; }
+    .removed-row .removed-name { flex: 1; font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .removed-row .restore { color: #1a73e8; background: #e8f0fe; }
+    .removed-row .restore:hover { background: #d2e3fc; }
+    .tip.warn { color: #d93025; }
     .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; box-sizing: border-box; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: #d93025; border-radius: 999px; box-shadow: 0 4px 12px rgba(217, 48, 37, .4); animation: toast-in .2s ease-out; }
     .toast.ok { background: #188038; box-shadow: 0 4px 12px rgba(24, 128, 56, .4); }
     .toast.hidden { display: none; }
@@ -28,7 +50,8 @@
     .guide .text b { display: block; font-size: 13px; color: #1a73e8; }
     .guide button { flex: none; margin-top: 0; padding: 7px 14px; background: #1a73e8; }
     .guide button:hover { background: #1557b0; }
-    .section { margin-top: 28px; padding-top: 20px; border-top: 1px solid #e8eaed; }
+    .section { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e8eaed; }
+    .tab-panel .section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
     .section h2 { font-size: 14px; margin: 0 0 12px; }
     .lock-row { display: flex; align-items: center; gap: 12px; }
     .lock-text { flex: 1; font-size: 12px; line-height: 1.7; color: #888; }
@@ -54,89 +77,108 @@
   </style>
 </head>
 <body>
-  <h1>金山文档连接配置</h1>
+  <h1>扩展配置</h1>
   <div class="guide">
     <div class="text"><b>首次配置？</b>跟随 6 步向导完成脚本部署与连接配置</div>
     <button id="openWizard" type="button">打开配置向导</button>
   </div>
-  <label for="webhookUrl">Webhook 链接</label>
-  <input id="webhookUrl" type="text" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../script/.../sync_task">
-  <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>
-  <label for="token">脚本令牌（AirScript-Token）</label>
-  <input id="token" type="password" placeholder="在脚本编辑器中生成的脚本令牌">
-  <label for="sheetName">数据表名称（多维表格有多张表时必填）</label>
-  <input id="sheetName" type="text" placeholder="如 项目；也可填 1 起始序号">
-  <div class="tip">多维表格里可有多张表（如 项目/任务/周报/成员）。留空时优先读取当前视图所在表，否则取第一张可读取的表</div>
-  <label>要拉取的字段</label>
-  <div id="fieldList"></div>
-  <button id="addField" type="button">+ 添加字段</button>
-  <div class="tip">多维表格直接填字段名（如「内容」「机构」），调整列顺序/视图排序均不影响；电子表格无表头行时填「显示名=列字母」，如 机构=E；日期字段加 :date 转可读时间，如 日期:date；可添加多个字段</div>
-  <label>最新一条数据的位置</label>
-  <label class="radio"><input type="radio" name="order" value="bottom">表格底部（默认，数据按时间追加在末尾）</label>
-  <label class="radio"><input type="radio" name="order" value="top">表格顶部（开启了按时间倒序自动排序时选此项）</label>
-  <label class="radio"><input id="autoFetch" type="checkbox" checked>点击拓展图标时自动拉取字段</label>
-  <div class="tip">取消勾选后需在弹窗中手动点击「重新获取」才会拉取</div>
-  <div id="autoCopySection">
-    <label for="autoCopyField">自动复制字段</label>
-    <select id="autoCopyField"></select>
-    <div class="tip">选择后，点击拓展图标获取数据时会自动把该字段内容复制到剪贴板</div>
-  </div>
-  <button id="save">保存</button>
+  <nav class="tabs">
+    <button class="tab active" data-tab="home" type="button">主页</button>
+    <button class="tab" data-tab="connect" type="button">连接</button>
+    <button class="tab" data-tab="config" type="button">配置</button>
+  </nav>
 
-  <div class="section">
-    <h2>安全</h2>
-    <div class="lock-row">
-      <div class="lock-text">
-        <b>锁定扩展</b>
-        锁定后所有功能不可用，也不会发起任何 webhook 请求；解锁需要输入 6 位数字 PIN。
-      </div>
-      <button id="lockBtn" type="button">锁定</button>
+  <section id="tab-home" class="tab-panel active">
+    <label>要展示的字段</label>
+    <div id="displayList" class="display-list"></div>
+    <div id="displayEmptyTip" class="tip warn hidden">没有要展示的字段，弹窗将无法展示数据。请到「连接」页检查要拉取的字段，或恢复下方已删除的字段</div>
+    <div id="removedSection" class="hidden">
+      <div class="tip">已删除的字段，点击「恢复」重新展示：</div>
+      <div id="removedDisplay"></div>
     </div>
-  </div>
+    <div class="tip">默认展示全部拉取字段；拖拽字段可调整展示顺序；点击字段使其高亮即设为自动复制，再次点击取消；删除后可随时恢复</div>
+    <label class="radio"><input id="autoFetch" type="checkbox" checked>点击拓展图标时自动拉取字段</label>
+    <div class="tip">取消勾选后需在弹窗中手动点击「重新获取」才会拉取</div>
+    <button class="save" type="button">保存</button>
+  </section>
 
-  <div class="section">
-    <h2>加密迁移</h2>
-    <div class="lock-row">
-      <div class="lock-text">
-        <b>迁移到云端</b>
-        将当前已保存的配置（含脚本令牌）用 6 位 PIN 加密后存入浏览器账号云同步，换设备登录同一账号即可还原。
-      </div>
-      <button id="cloudUploadBtn" type="button">迁移到云端</button>
-    </div>
-    <div class="lock-row">
-      <div class="lock-text">
-        <b>从云端移入</b>
-        扫描云端是否有备份，如有则输入迁移时设置的 6 位 PIN 解密还原到本机（将覆盖当前配置）。
-      </div>
-      <button id="cloudRestoreBtn" type="button">从云端移入</button>
-    </div>
-  </div>
+  <section id="tab-connect" class="tab-panel">
+    <label for="webhookUrl">Webhook 链接</label>
+    <input id="webhookUrl" type="text" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../script/.../sync_task">
+    <div class="tip">金山文档脚本编辑器 → 侧边栏脚本「更多菜单」→ 复制 webhook 链接</div>
+    <label for="token">脚本令牌（AirScript-Token）</label>
+    <input id="token" type="password" placeholder="在脚本编辑器中生成的脚本令牌">
+    <label for="sheetName">数据表名称（多维表格有多张表时必填）</label>
+    <input id="sheetName" type="text" placeholder="如 项目；也可填 1 起始序号">
+    <div class="tip">多维表格里可有多张表（如 项目/任务/周报/成员）。留空时优先读取当前视图所在表，否则取第一张可读取的表</div>
+    <label>要拉取的字段</label>
+    <div id="fieldList"></div>
+    <button id="addField" type="button">+ 添加字段</button>
+    <div class="tip">多维表格直接填字段名（如「内容」「机构」），调整列顺序/视图排序均不影响；电子表格无表头行时填「显示名=列字母」，如 机构=E；日期字段加 :date 转可读时间，如 日期:date；可添加多个字段</div>
+    <label>最新一条数据的位置</label>
+    <label class="radio"><input type="radio" name="order" value="bottom">表格底部（默认，数据按时间追加在末尾）</label>
+    <label class="radio"><input type="radio" name="order" value="top">表格顶部（开启了按时间倒序自动排序时选此项）</label>
+    <button class="save" type="button">保存</button>
+  </section>
 
-  <div class="section">
-    <h2>导出 / 导入配置</h2>
-    <div class="lock-row">
-      <div class="lock-text">
-        <b>导出配置链接</b>
-        用 6 位 PIN 加密当前配置并生成一条可保存的链接；拿到链接的人仍需 PIN 才能还原。
+  <section id="tab-config" class="tab-panel">
+    <div class="section">
+      <h2>安全</h2>
+      <div class="lock-row">
+        <div class="lock-text">
+          <b>锁定扩展</b>
+          锁定后所有功能不可用，也不会发起任何 webhook 请求；解锁需要输入 6 位数字 PIN。
+        </div>
+        <button id="lockBtn" type="button">锁定</button>
       </div>
-      <button id="exportBtn" type="button">导出配置</button>
     </div>
-    <div id="exportResult" class="export-result hidden">
-      <label for="exportLink">配置链接（请完整复制，保存到书签或记在别处）</label>
-      <div class="field-row">
-        <input id="exportLink" type="text" readonly>
-        <button id="copyExportLink" type="button" class="del">复制</button>
+
+    <div class="section">
+      <h2>通过浏览器加密迁移（不推荐）</h2>
+      <div class="lock-row">
+        <div class="lock-text">
+          <b>迁移到云端</b>
+          将当前已保存的配置用 6 位 PIN 加密后存入浏览器账号云同步，换设备登录同一账号即可还原。
+          <br>
+          ⚠受限于不同浏览器的同步机制，本功能不保证可靠，建议导出配置链接。
+        </div>
+        <button id="cloudUploadBtn" type="button">迁移到云端</button>
       </div>
-      <div class="tip">在任意设备打开该链接，按页面提示打开扩展并输入 PIN 即可还原配置；链接较长，复制时请勿截断。</div>
-    </div>
-    <div class="lock-row">
-      <div class="lock-text">
-        <b>从链接导入</b>
-        粘贴配置链接并输入导出时设置的 6 位 PIN 解密还原（将覆盖当前配置）。
+      <div class="lock-row">
+        <div class="lock-text">
+          <b>从云端移入</b>
+          扫描云端是否有备份，如有则输入迁移时设置的 6 位 PIN 解密还原到本机（将覆盖当前配置）。
+        </div>
+        <button id="cloudRestoreBtn" type="button">从云端移入</button>
       </div>
-      <button id="importBtn" type="button">从链接导入</button>
     </div>
-  </div>
+
+    <div class="section">
+      <h2>导出 / 导入配置</h2>
+      <div class="lock-row">
+        <div class="lock-text">
+          <b>导出配置链接</b>
+          用 6 位 PIN 加密当前配置并生成一条可保存的链接；拿到链接的人仍需 PIN 才能还原。
+        </div>
+        <button id="exportBtn" type="button">导出配置</button>
+      </div>
+      <div id="exportResult" class="export-result hidden">
+        <label for="exportLink">配置链接（请完整复制，保存到书签或记在别处）</label>
+        <div class="field-row">
+          <input id="exportLink" type="text" readonly>
+          <button id="copyExportLink" type="button" class="del">复制</button>
+        </div>
+        <div class="tip">在任意设备打开该链接，按页面提示打开扩展并输入 PIN 即可还原配置；链接较长，复制时请勿截断。</div>
+      </div>
+      <div class="lock-row">
+        <div class="lock-text">
+          <b>从链接导入</b>
+          粘贴配置链接并输入导出时设置的 6 位 PIN 解密还原（将覆盖当前配置）。
+        </div>
+        <button id="importBtn" type="button">从链接导入</button>
+      </div>
+    </div>
+  </section>
 
   <div id="pinModal" class="modal-mask hidden">
     <div class="modal">

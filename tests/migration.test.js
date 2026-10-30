@@ -10,6 +10,7 @@ const sampleConfig = {
   token: 'secret-airscript-token',
   sheet: '项目',
   fields: ['内容', '机构=E', '日期:date'],
+  displayFields: ['内容', '机构'],
   order: 'bottom',
   autoCopyField: '内容',
   autoFetch: true,
