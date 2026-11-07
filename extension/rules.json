@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "Origin", "operation": "set", "value": "https://www.kdocs.cn" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "www.kdocs.cn/api/v3/ide/",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

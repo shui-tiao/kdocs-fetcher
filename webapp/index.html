@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金山文档拉取器 — 网页版已停止提供</title>
+<meta name="description" content="金山文档拉取器网页版已停止提供，出于安全考虑下线。请改用浏览器扩展，数据只在扩展内处理。">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffd23f'/%3E%3Crect x='17' y='13' width='9' height='38' rx='2.5' fill='%2317181a'/%3E%3Crect x='30' y='27' width='9' height='24' rx='2.5' fill='%2317181a'/%3E%3Crect x='43' y='20' width='9' height='31' rx='2.5' fill='%2317181a' fill-opacity='.38'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --ink: #17181a;
+    --muted: #6f6f6a;
+    --faint: #a0a09a;
+    --line: #f0f0ec;
+    --line-soft: #f6f6f3;
+    --accent: #ffd23f;
+    --sans: "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); color: var(--ink); background: #fff; font-size: 15.5px; line-height: 1.85; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent); color: var(--ink); }
+  .page { max-width: 620px; margin: 0 auto; padding: 0 28px; min-height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; height: 62px; border-bottom: 1px solid var(--line); }
+  .wordmark { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+  .wordmark b { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; }
+  .ver { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  main { padding: 72px 0 64px; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .22em; color: var(--faint); margin-bottom: 20px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.25; font-weight: 800; letter-spacing: -.01em; margin-bottom: 18px; }
+  h1 .hl { box-shadow: inset 0 -0.34em var(--accent); }
+  .lead { color: var(--muted); margin-bottom: 22px; }
+  .note { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--muted); font-size: 14px; line-height: 1.9; margin-bottom: 36px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 26px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .15s, border-color .15s; }
+  .btn-ink { background: var(--ink); color: #fff; border: 1px solid var(--ink); }
+  .btn-ink:hover { background: #2c2d30; }
+  .btn-ghost { background: none; color: var(--ink); border: 1px solid #dcdcd6; }
+  .btn-ghost:hover { border-color: var(--ink); }
+  footer { margin-top: auto; border-top: 1px solid var(--line); padding: 26px 0 40px; display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: center; font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+  footer a { color: var(--muted); text-decoration: none; border-bottom: 1px solid #dcdcd6; padding-bottom: 1px; }
+  footer a:hover { color: var(--ink); border-color: var(--ink); }
+  footer .right { margin-left: auto; }
+  @media (max-width: 560px) { footer .right { margin-left: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <span class="wordmark"><b></b>KDOCS-FETCHER</span>
+    <span class="ver" data-app-version>v—</span></span>
+  </header>
+
+  <main>
+    <div class="kicker">WEB VERSION RETIRED</div>
+    <h1>网页版已<span class="hl">停止提供</span></h1>
+    <p class="lead">出于安全考虑，我们已经下线网页版。网页端需要额外经由其他服务器处理脚本令牌与配置，才能实现基本功能，这存在较大风险。</p>
+    <p class="note">建议您继续使用拓展，令牌存于浏览器本地，请求直发金山文档服务器，解密与还原也只在扩展中完成，不经过任何网页。</p>
+    <div class="actions">
+      <a class="btn btn-ink" href="https://microsoftedge.microsoft.com/addons/detail/金山文档拉取器/embppmffjpkljnghnoljfbdamlldpfae" target="_blank" rel="noopener">从 Edge 商店安装扩展</a>
+      <a class="btn btn-ghost" href="https://shui-tiao.github.io/kdocs-fetcher/docs/">回到官网</a>
+    </div>
+  </main>
+
+  <footer>
+    <span>KDOCS-FETCHER</span></span>
+    <a href="../privacy.html">隐私政策</a>
+    <span class="right">一点 就是最新数据 · © 2026</span>
+  </footer>
+</div>
+
+</body>
+</html>

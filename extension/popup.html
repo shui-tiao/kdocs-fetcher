@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>金山文档拉取器</title>
+  <style>
+    /* 设计语言：方案 C「一步 · 极简直取」黑白灰 + #ffd23f */
+    :root {
+      --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
+      --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
+      --err: #d5483c; --err-bg: #fdf0ee; --ok: #1d9a4e; --ok-bg: #ecf8ef;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      width: 340px; max-height: 600px; margin: 0; overflow-y: auto; background: #fff;
+      color: var(--ink); font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 13px; line-height: 1.6; position: relative;
+    }
+    body.in-panel { width: 100%; }
+
+    /* 顶栏 */
+    .top { display: flex; align-items: center; padding: 12px 16px 0; }
+    /* 构建证据标识：v版本/扩展ID尾6位（字标已删，左上角仅留此标识） */
+    .vermark { font-size: 9px; letter-spacing: .5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .top .more { margin-left: auto; width: 22px; height: 22px; border: none; background: none; color: var(--faint); font-size: 15px; cursor: pointer; border-radius: 6px; }
+    .top .more:hover { background: var(--line-soft); color: var(--ink); }
+    .menu { position: absolute; top: 36px; right: 12px; z-index: 5; width: 150px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 26px rgba(23,24,26,.14); padding: 6px; }
+    .menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; font-size: 13px; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--ink); font-family: inherit; }
+    .menu button:hover { background: var(--line-soft); }
+    .menu button:disabled { color: var(--faint); cursor: default; background: none; }
+    /* 菜单顶部只读信息行：表格类型 + 取数方向，由现有配置推导，不可点击 */
+    .menu .menu-info { padding: 6px 12px 8px; font-size: 11px; letter-spacing: .3px; color: var(--faint); cursor: default; user-select: none; border-bottom: 1px solid var(--line-soft); margin-bottom: 4px; }
+
+    /* 状态行：加载 / 模式 / 错误 / 安静提示 */
+    .status { margin: 14px 20px 0; font-size: 12px; color: var(--muted); line-height: 1.8; overflow-wrap: anywhere; }
+    .fix-go { display: inline-block; margin-top: 6px; border: none; background: none; padding: 0 0 1px; color: var(--ink); font-size: 12px; font-weight: 600; border-bottom: 2px solid var(--accent); cursor: pointer; font-family: inherit; }
+
+    /* 居中安静态：错误 / 空态（error-detail.html / onboarding.html） */
+    .quiet-block { margin: 0 -20px; padding: 30px 24px 8px; text-align: center; }
+    /* 状态图标（统一组件，规格同 wizard 大图标）：68px 浅灰圆底 + 线性 SVG（38px、stroke 3、圆头），
+       场景色由 JS 传入 stroke：中性 #6f6f6a / 失败 --err / 成功绿（备用） */
+    .quiet-block .glyph { width: 68px; height: 68px; margin: 0 auto 16px; border-radius: 50%; background: var(--line-soft); display: flex; align-items: center; justify-content: center; }
+    .quiet-block .glyph svg { width: 38px; height: 38px; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .quiet-block h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; color: var(--ink); }
+    .quiet-block h3.err-line { color: var(--err); }
+    .quiet-block p { font-size: 12px; color: var(--muted); line-height: 1.9; margin: 0 0 4px; overflow-wrap: anywhere; hyphens: none; }
+    .muted-act { display: inline-block; margin: 10px 0 0 14px; border: none; background: none; padding: 0; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; }
+    .muted-act:hover { color: var(--ink); }
+    /* 安全区只有一个次级动作（如失败态的「查看详情」）时居中，不再按并排布局缩进 */
+    .muted-act.alone { margin-left: 0; }
+
+    /* 加载：三点跳动（C 稿 01 加载帧）——点样式与节奏在共享 loading.css，此处仅弹窗居中布局 */
+    .dots { padding: 26px 0 10px; justify-content: center; }
+    .loading-sub { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 10px; }
+
+    /* 错误详情层：整屏覆盖弹窗（error-detail.html），fixed 保证滚动内容之上 */
+    .detail-layer { position: fixed; inset: 0; z-index: 20; background: #fff; display: flex; flex-direction: column; overflow-y: auto; }
+    .detail-head { display: flex; align-items: center; padding: 12px 16px; }
+    .detail-head .back { border: none; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 6px 2px 0; font-family: inherit; }
+    .detail-head .back:hover { color: var(--ink); }
+    .detail-head .t { font-size: 13px; font-weight: 600; }
+    .err-mono { margin: 10px 16px 0; padding: 12px 14px; background: var(--line-soft); border-radius: 10px; font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 11px; line-height: 1.8; color: var(--ink); word-break: break-all; }
+    .err-mono .bad { color: var(--err); }
+    .checklist { margin: 14px 16px 0; border-top: 1px solid var(--line); }
+    .checklist .ck { display: flex; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line-soft); font-size: 12px; line-height: 1.7; }
+    .checklist .ck .n { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #dcdcd6; color: var(--muted); font-size: 10px; text-align: center; line-height: 15px; margin-top: 2px; }
+    .checklist .ck b { font-weight: 600; }
+    .checklist .ck .sub { color: var(--muted); }
+    .copy-err { margin: 0 16px; padding: 10px 0 0; }
+    .copy-err .minilink { margin-top: 4px; }
+
+    /* 主值（第一个字段） */
+    .hero-row { padding: 20px 20px 0; }
+    .hero-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .hero-value { font-size: 30px; font-weight: 700; letter-spacing: -.5px; line-height: 1.25; word-break: break-all; cursor: pointer; }
+    .hero-value:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 5px; text-decoration-thickness: 2px; }
+    .hero-value.long { font-size: 18px; font-weight: 600; letter-spacing: 0; line-height: 1.6; }
+    .hero-value.fail { color: var(--err); }
+    .clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .more-toggle { display: block; width: 100%; text-align: right; margin-top: 4px; border: none; background: none; padding: 0; color: var(--faint); font-size: 11px; cursor: pointer; font-family: inherit; }
+    .more-toggle:hover { color: var(--ink); }
+
+    /* 自动复制气泡：就近定位——showToast 把气泡移动到被复制字段旁（hero 内部 / 行后兄弟节点），随内容流滚动，永不溢出弹窗 */
+    .toast { display: inline-flex; align-items: center; margin: 8px 0 0; padding: 5px 12px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-size: 12px; font-weight: 600; }
+    .toast.row { margin: 0 0 8px 4px; }
+
+    /* 其余字段行 */
+    .others { margin: 20px 16px 0; border-top: 1px solid var(--line); }
+    .o-row { display: flex; align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+    .o-row:last-child, .o-row.toast-after { border-bottom: none; }
+    .o-row:hover .k { color: var(--ink); }
+    .o-row .k { flex: none; max-width: 96px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o-row .v { flex: 1; min-width: 0; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o-row.open .v { white-space: normal; word-break: break-all; line-height: 1.7; }
+    .o-row .cp { flex: none; border: none; background: none; color: var(--faint); font-size: 11px; cursor: pointer; font-family: inherit; padding: 0; opacity: 0; transition: opacity .15s ease; pointer-events: none; }
+    .o-row:hover .cp { opacity: 1; }
+    .o-row.truncated .cp, .o-row.open .cp { opacity: 1; pointer-events: auto; }
+    .o-row .cp.fail { color: var(--err); font-weight: 600; }
+    .o-row .v.error { color: var(--err); white-space: normal; }
+    .o-row.error-row { cursor: default; }
+    .o-row.error-row .cp { display: none; }
+
+    /* 底部动作 */
+    .foot { padding: 18px 16px 16px; text-align: center; }
+    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; }
+    .big-btn:hover { background: #2c2d30; }
+    .big-btn:disabled { background: #e8e8e4; color: var(--faint); cursor: default; }
+    .minilink { display: inline-block; margin-top: 10px; border: none; background: none; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; }
+    .minilink:hover { color: var(--ink); }
+  </style>
+  <link rel="stylesheet" href="loading.css">
+</head>
+<body>
+  <div class="top">
+    <span id="verMark" class="vermark"></span>
+    <button id="menuBtn" class="more" type="button" title="更多操作">⋯</button>
+  </div>
+  <div id="menu" class="menu" hidden>
+    <div id="menuInfo" class="menu-info"></div>
+    <button id="copy" type="button">全部复制</button>
+    <button id="openOptions" type="button">扩展配置</button>
+  </div>
+  <div id="status" class="status" hidden></div>
+  <div id="fields"></div>
+  <div id="copiedToast" class="toast" hidden>✓ 已自动复制</div>
+  <!-- 错误详情层（error-detail.html）：主页一句话错误 + 此处整屏技术详情，退出即恢复极简 -->
+  <div id="detailLayer" class="detail-layer" hidden>
+    <div class="detail-head">
+      <button id="detailBack" class="back" type="button">‹ 返回</button>
+      <span class="t">错误详情</span>
+    </div>
+    <div id="errMono" class="err-mono"></div>
+    <div id="errChecklist" class="checklist"></div>
+    <div class="copy-err"><button id="copyErr" class="minilink" type="button">复制错误信息（反馈时附带）</button></div>
+  </div>
+  <div class="foot">
+    <button id="refresh" class="big-btn" type="button">重新获取</button>
+  </div>
+  <script src="lock.js"></script>
+  <script src="wizard-open.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

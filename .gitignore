@@ -1,0 +1,10 @@
+# 改动前备份（回退点，不入库）
+design/backup/
+
+# 打包产物 zip
+dist/*.zip
+
+# 本地临时目录 / 预览共享包 / 截图缓存 / 扩展解包元数据
+.trae-html-share-packages/
+.screenshots/
+_metadata/

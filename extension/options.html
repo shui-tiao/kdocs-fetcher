@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>配置 - 金山文档拉取器</title>
+  <style>
+    /* 设计语言：方案 C「一步 · 极简直取」，按 C 稿 options 预览四帧结构落地
+       状态带第一屏（Webhook/令牌/数据表逐项状态+就地操作） → 平铺分区（字段胶囊/行为开关/安全/迁移/关于），无手风琴 */
+    :root {
+      --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
+      --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
+      --err: #d5483c; --ok: #1d9a4e; --busy: #d8b73c;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; width: 420px; margin: 24px auto 48px; color: var(--ink); font-size: 13px; }
+    .opt-head h2 { font-size: 17px; margin: 0 0 2px; font-weight: 700; }
+    .opt-head .sub { font-size: 11px; letter-spacing: 1.5px; color: var(--faint); margin: 0 0 16px; }
+
+    /* ===== 连接状态带（第一屏）：一句话 + 状态点回答「现在能不能用」，逐项给状态与就地操作 ===== */
+    .status-band { margin: 0 0 4px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: #fff; }
+    .status-band .line1 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+    /* 头部结论文字占满剩余宽、过长省略；向导入口胶囊贴卡片右内边距、与首行垂直居中 */
+    .status-band .line1 #connStatusText { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-band .line1 .act-btn { margin: 0; flex: none; }
+    .sdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #c8c8c2; }
+    .status-band.busy .sdot { background: var(--busy); }
+    .status-band.ok .sdot { background: var(--ok); }
+    .status-band.partial .sdot { background: var(--busy); }
+    .status-band .line2 { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.8; }
+    .svc-list { margin-top: 10px; border-top: 1px solid var(--line-soft); }
+    /* 三列 grid 对齐：名称列 minmax(72px,auto)（取三行最宽者，全列左缘一致）/ 状态列 1fr（吃剩余宽、可截断）/ 动作列 minmax(48px,auto)（随最长动作文案自适应，grid 列右缘三行严格一致）。
+       窄屏降级：名称列缩到 72px 后省略号截断，动作列永不压缩。 */
+    .svc { display: grid; grid-template-columns: minmax(72px, auto) minmax(0, 1fr) minmax(48px, auto); align-items: center; gap: 8px; padding: 9px 2px; font-size: 12px; border-bottom: 1px solid var(--line-soft); }
+    .svc:last-child { border-bottom: none; }
+    .svc .nm { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .svc .st { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .svc .st.ok { color: var(--ok); }
+    .svc .st.no { color: var(--err); }
+    .svc .st.chk { color: var(--muted); }
+    /* text 档：状态带就地动作（修改/去填写/更换/收起）专用，全页唯一使用点；轻量下划线文字，右对齐贴列右缘 */
+    .svc .act { justify-self: end; margin: 0; height: auto; padding: 2px 0; border: none; background: none; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+    .svc .act:hover { color: var(--ink); background: none; }
+    /* 就地编辑器：默认收起，点「修改/去填写/更换」展开；输入即防抖保存（options.js），无单独保存按钮 */
+    .svc-editor { padding: 10px 2px 8px; border-bottom: 1px solid var(--line-soft); }
+    .svc-editor input { margin-bottom: 0; }
+    /* 底部「打开配置向导」CTA 已删：状态带右上角胶囊四态常驻，不再保留同功能第二入口 */
+
+    /* ===== 平铺分区（无手风琴）：低频内容靠 11px 灰字母分区标 + 发丝线控制密度 ===== */
+    .sect { margin: 4px 0 0; padding: 13px 0 4px; border-top: 1px solid var(--line); }
+    .sect .s-label { font-size: 11px; letter-spacing: 1.5px; color: var(--faint); margin-bottom: 4px; }
+    /* 不可用分区压暗而非隐藏，保持空间结构稳定；仍可交互 */
+    .sect.dim { opacity: .42; }
+    .sect.dim .f-row .v::after { content: '（连接后可用）'; color: var(--faint); font-size: 11px; }
+
+    /* 名称—状态—操作 同一行直读 */
+    .f-row { display: flex; align-items: center; gap: 8px; padding: 8px 2px; font-size: 13px; }
+    .f-row .nm { color: var(--ink); }
+    .f-row .v { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; }
+    .f-row button { margin: 0; }
+    /* 字段区「管理/完成」：secondary 档胶囊（与段标题同排时靠 f-row 垂直居中对齐） */
+    .f-row .act { flex: none; height: 32px; padding: 0 16px; text-decoration: none; }
+
+    /* 行为区开关（checkbox 换肤） */
+    input.switch { appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: 999px; background: #ddd9d2; position: relative; cursor: pointer; margin: 0 0 0 auto; flex: none; transition: background .15s; padding: 0; border: none; }
+    input.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(23, 24, 26, .25); }
+    input.switch:checked { background: var(--ink); }
+    input.switch:checked::after { transform: translateX(16px); }
+    input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    label.f-row { display: flex; margin: 0; cursor: pointer; }
+
+    /* 字段胶囊：✓ = 自动复制字段；虚线 = 带 :date 等修饰 */
+    .field-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 2px; }
+    .fc { display: inline-flex; align-items: center; padding: 3px 11px; font-size: 12px; border: 1px solid #e4e4de; border-radius: 999px; background: #fff; color: var(--ink); }
+    .fc.star { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .fc.date { border-style: dashed; }
+    .fc.none { border-style: dashed; color: var(--faint); background: transparent; }
+    .fc.edit { user-select: none; }
+    .fc.dragging { opacity: .5; }
+    /* 排序把手：只有 ≡ 可拖，胶囊本体不可拖（避免浏览器接管拖拽退化成地址栏搜索） */
+    .fc .fc-grip { display: inline-flex; align-items: center; margin: 0 6px 0 -2px; font-size: 13px; line-height: 1; color: var(--muted); cursor: grab; user-select: none; }
+    .fc .fc-grip:active { cursor: grabbing; }
+    /* 胶囊内 × 删除微控件：豁免按钮令牌（随胶囊高、无独立外观），hover 变红示意删除 */
+    .fc .fc-x { height: auto; display: inline; border: none; background: none; margin: 0; padding: 0 0 0 6px; font-size: 12px; line-height: 1; color: var(--muted); cursor: pointer; font-family: inherit; }
+    .fc .fc-x:hover { color: var(--err); background: none; }
+    /* 管理态添加行 */
+    .chip-add-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .chip-add-row input { flex: 1; }
+    .chip-add-row button { flex: none; margin: 0; }
+
+    label { display: block; font-size: 13px; margin: 12px 0 4px; }
+    input, select { width: 100%; padding: 9px 11px; font-size: 13px; border: 1px solid #e4e4de; border-radius: 10px; color: var(--ink); font-family: inherit; background: #fff; }
+    /* select 与胶囊按钮视觉协调：同高 32px，但保留输入系外观（10px 圆角，不做按钮样式） */
+    select { height: 32px; padding-top: 0; padding-bottom: 0; }
+    input:focus, select:focus { outline: none; border-color: var(--ink); }
+    input[type="radio"], input[type="checkbox"]:not(.switch) { width: auto; margin: 0 6px 0 0; }
+    /* ===== 按钮令牌（全页唯一体系）：胶囊 999px · 高 32px · 字号 12px · 字重 600 · hover/active 变底色 · focus-visible 黄描边
+       primary（黑）＝页面/弹层唯一主操作；secondary（浅灰）＝中等权重；danger（浅红）＝与 secondary 同形状仅语义色；text＝状态带就地动作（见 .svc .act） */
+    button { margin-top: 16px; display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 16px; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; border: none; border-radius: 999px; cursor: pointer; font-family: inherit; }
+    button:hover { background: #2c2d30; }
+    button:active { background: #45464a; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    /* secondary 档：打开 / 管理 / 添加 / 复制 / 导出 / 导入 / 迁出 / 移入 / 取消 / 关闭 */
+    button.secondary, .act-btn, .field-row .del, .chip-add-row button, .f-row .act { background: var(--line-soft); color: var(--ink); }
+    button.secondary:hover, .act-btn:hover, .field-row .del:hover, .chip-add-row button:hover, .f-row .act:hover { background: var(--line); }
+    button.secondary:active, .act-btn:active, .field-row .del:active, .chip-add-row button:active, .f-row .act:active { background: #e2e2dc; }
+    /* danger 档：锁定 / 清除云端数据（与 secondary 同形状同尺寸，仅语义色） */
+    .act-btn.warn { background: #fdf0ee; color: var(--err); }
+    .act-btn.warn:hover { background: #f9ddda; }
+    .act-btn.warn:active { background: #f3cfc9; }
+    .field-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .field-row input { flex: 1; }
+    .field-row .del { flex-shrink: 0; margin-top: 0; align-self: center; }
+    .tip { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
+    .tip.warn { color: var(--err); }
+    .radio-inline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin: 0 0 0 10px; cursor: pointer; }
+    .radio-inline:has(input:checked) { color: var(--ink); font-weight: 600; }
+    .hidden { display: none !important; }
+    .migration-stats { margin: 4px 0 10px; padding: 8px 12px; font-size: 12px; line-height: 1.8; color: #6f6f6a; background: var(--line-soft); border-radius: 10px; }
+    .migration-stats b { color: var(--ink); }
+    /* 长文本防溢出：URL/令牌等无空格长串任意位置可断行；状态列用省略号避免撑破行 */
+    .toast, .status-band .line2, .migration-stats { overflow-wrap: anywhere; hyphens: none; }
+    .svc .st { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 弹窗 / 提示（DOM 未动） */
+    .modal-mask { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(23, 24, 26, .45); z-index: 10; }
+    .modal-mask.hidden { display: none; }
+    .modal { width: 340px; padding: 20px; background: #fff; border-radius: 14px; box-shadow: 0 8px 24px rgba(23, 24, 26, .2); }
+    .modal h3 { font-size: 15px; margin: 0 0 8px; }
+    .modal p { font-size: 12px; line-height: 1.7; color: #6f6f6a; margin: 0 0 12px; }
+    .modal .risk { margin: 0 0 12px; padding: 10px 12px; font-size: 12px; line-height: 1.7; color: #a50e0e; background: #fdf0ee; border: 1px solid #f4b4ae; border-radius: 10px; }
+    .modal .risk.hidden { display: none !important; }
+    .modal .risk b { display: block; margin-bottom: 4px; font-size: 13px; color: var(--err); }
+    .modal .risk code { font-family: Consolas, monospace; padding: 0 3px; background: #fff3f2; border-radius: 3px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-actions button { margin-top: 0; }
+    /* 迁移弹层内的动作行：标题 + 说明 + 动作按钮 */
+    .layer-act { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+    .layer-act:last-of-type { border-bottom: none; }
+    .layer-act .la-body { flex: 1; min-width: 0; }
+    .layer-act .la-body b { display: block; font-size: 13px; }
+    .layer-act .la-body span { display: block; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .layer-act .act-btn { flex: none; margin: 0; }
+    .export-result { margin-top: 4px; }
+    .export-result .field-row { margin-bottom: 0; }
+    .export-result textarea { flex: 1; height: 88px; padding: 8px; font-family: Consolas, monospace; font-size: 12px; line-height: 1.6; color: var(--ink); border: 1px solid #e4e4de; border-radius: 10px; resize: none; word-break: break-all; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: var(--err); border-radius: 999px; box-shadow: 0 4px 12px rgba(213, 72, 60, .35); animation: toast-in .2s ease-out; }
+    .toast.ok { background: var(--ok); box-shadow: 0 4px 12px rgba(29, 154, 78, .35); }
+    .toast.hidden { display: none; }
+    @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+    /* 底部：关于 */
+    .opt-foot { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .about-row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 14px; font-size: 11px; color: var(--faint); }
+    .about-row .ver { font-weight: 700; letter-spacing: .5px; }
+  </style>
+</head>
+<body>
+  <div class="opt-head">
+    <h2>扩展配置</h2>
+    <div class="sub">金山文档拉取器</div>
+  </div>
+
+  <!-- 第一屏：连接状态带（状态由 options-status.js 只读推导） -->
+  <div id="connStatus" class="status-band busy">
+    <div class="line1"><span class="sdot"></span><span id="connStatusText">正在读取配置…</span><button id="bandWizardBtn" class="act-btn" type="button" title="覆盖 / 重新配置">打开配置向导</button></div>
+    <div class="line2" id="connStatusSub">从本地存储读取已保存的连接信息</div>
+    <div class="svc-list">
+      <div class="svc"><span class="nm">Webhook 链接</span><span id="svcWebhookState" class="st chk">检测中</span><button id="svcWebhookAct" class="act" type="button" data-editor="edWebhook">修改</button></div>
+      <div class="svc-editor hidden" id="edWebhook">
+        <input id="webhookUrl" type="url" placeholder="https://www.kdocs.cn/api/v3/ide/file/.../script/.../webhook">
+      </div>
+      <div class="svc"><span class="nm">脚本令牌</span><span id="svcTokenState" class="st chk">检测中</span><button id="svcTokenAct" class="act" type="button" data-editor="edToken">修改</button></div>
+      <div class="svc-editor hidden" id="edToken">
+        <input id="token" type="password" placeholder="AirScript Token">
+      </div>
+      <div class="svc"><span class="nm">数据表（可选）</span><span id="svcSheetState" class="st chk">检测中</span><button id="svcSheetAct" class="act" type="button" data-editor="edSheet">修改</button></div>
+      <div class="svc-editor hidden" id="edSheet">
+        <input id="sheetName" type="text" placeholder="留空则自动识别">
+      </div>
+    </div>
+  </div>
+
+  <!-- 平铺分区：字段（只读胶囊 + 「管理」进入编辑态：增删/拖拽，退出即自动保存） -->
+  <section class="sect" id="sectFields">
+    <div class="s-label">字段</div>
+    <div id="fieldChips" class="field-chips"></div>
+    <div id="chipAddRow" class="chip-add-row hidden">
+      <input id="chipInput" type="text" placeholder="填写字段名或列字母">
+      <button id="chipAdd" type="button">添加</button>
+    </div>
+    <div class="f-row"><span class="nm" id="fieldHint">点击胶囊设为自动复制</span><span class="v"><button id="manageToggle" class="act" type="button">管理</button></span></div>
+    <div class="tip">点击管理按钮可以添加、删除、排序字段</div>
+  </section>
+
+  <!-- 平铺分区：行为 -->
+  <section class="sect" id="sectBehavior">
+    <div class="s-label">行为</div>
+    <label class="f-row" for="autoFetch"><span class="nm">点击图标时自动拉取</span><input id="autoFetch" type="checkbox" class="switch" checked></label>
+    <label class="f-row" for="contextMenuPaste"><span class="nm">右键菜单「获取数据并粘贴」</span><input id="contextMenuPaste" type="checkbox" class="switch"></label>
+    <div class="tip" id="contextMenuPasteTip">启用后将在右键菜单中添加「获取数据并粘贴」选项</div>
+    <div id="charByCharPasteRow" class="hidden">
+      <label class="f-row" for="charByCharPaste"><span class="nm">逐字形式粘贴</span><input id="charByCharPaste" type="checkbox" class="switch"></label>
+      <div class="tip" id="charByCharPasteTip">逐字依次填入，增强对填写验证码场景的支持。</div>
+    </div>
+    <div class="f-row"><span class="nm">最新一条数据的位置</span><span class="v">
+      <select id="orderSelect">
+        <option value="bottom">底部</option>
+        <option value="top">顶部</option>
+      </select>
+    </span></div>
+    <div class="tip">若开启了按时间倒序自动排序时请选「顶部」</div>
+    <div class="f-row"><span class="nm">点击扩展图标时打开</span><span class="v">
+      <select id="openModeSelect">
+        <option value="popup">弹窗</option>
+        <option value="panel">侧栏</option>
+      </select>
+    </span></div>
+    <div class="tip">浏览器不支持侧边栏时会自动改用弹窗</div>
+  </section>
+
+  <!-- 平铺分区：安全 -->
+  <section class="sect" id="sectSecurity">
+    <div class="s-label">安全</div>
+    <div class="f-row"><span class="nm">锁定扩展</span><span class="v">锁定后不发起任何请求</span><button id="lockBtn" class="act-btn warn" type="button">锁定</button></div>
+  </section>
+
+  <!-- 平铺分区：配置迁移 -->
+  <section class="sect" id="sectMigration">
+    <div class="s-label">配置迁移</div>
+    <div id="migrationStats" class="migration-stats"></div>
+    <div class="f-row"><span class="nm">配置链接</span><span class="v">将数据加密写入链接中，可通过链接迁移配置</span><button id="linkLayerBtn" class="act-btn" type="button">打开</button></div>
+    <div class="f-row"><span class="nm">云端数据</span><span class="v">将数据加密写入浏览器账号，不保证可靠</span><button id="cloudLayerBtn" class="act-btn" type="button">打开</button></div>
+  </section>
+
+  <!-- 平铺分区：关于 -->
+  <section class="sect" id="sectAbout">
+    <div class="s-label">关于</div>
+    <div class="tip">金山文档拉取器是一个独立的浏览器拓展，与金山文档，金山办公，WPS等官方没有任何关联，仅用于个人使用。</div>
+  </section>
+
+  <!-- 底部：关于（所有配置修改即时生效，无保存按钮） -->
+  <div class="opt-foot">
+    <div class="about-row"><span id="aboutVersion" class="ver">—</span><span>金山文档拉取器</span></div>
+  </div>
+
+  <div id="exportModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3>配置链接已生成</h3>
+      <p>这是你唯一一次看到该链接的机会，<b style="display:inline;color:#d93025">关闭后将无法再次查看</b>。请立即完整复制并妥善保存。</p>
+      <div class="export-result">
+        <label for="exportLink">配置链接</label>
+        <div class="field-row">
+          <textarea id="exportLink" readonly spellcheck="false"></textarea>
+          <button id="copyExportLink" type="button" class="del">复制</button>
+        </div>
+        <div class="tip">可在其他设备打开该链接，按页面提示打开扩展并输入 PIN 即可还原配置；链接较长，复制时请勿截断。</div>
+      </div>
+      <div class="modal-actions">
+        <button id="exportModalClose" type="button">我已保存，关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3 id="pinModalTitle"></h3>
+      <p id="pinModalDesc"></p>
+      <div id="pinModalRisk" class="risk hidden"></div>
+      <label for="pinModalInput">PIN 密码</label>
+      <input id="pinModalInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
+      <div class="modal-actions">
+        <button id="pinModalCancel" class="secondary" type="button">取消</button>
+        <button id="pinModalConfirm" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="lockModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3>设置解锁 PIN</h3>
+      <p>请设置 6 位数字 PIN。锁定后需输入该 PIN 才能恢复使用；解锁成功后 PIN 不会被保存，下次锁定需重新设置。</p>
+      <label for="pinInput">PIN 密码</label>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
+      <label for="pinConfirm">再次输入 PIN</label>
+      <input id="pinConfirm" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 位数字">
+      <div class="modal-actions">
+        <button id="lockCancel" class="secondary" type="button">取消</button>
+        <button id="lockConfirm" type="button">确定锁定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="importModal" class="modal-mask hidden">
+    <div class="modal">
+      <h3>从链接导入</h3>
+      <p>粘贴包含配置数据的链接，下一步输入导出时设置的 6 位 PIN 解密还原。</p>
+      <label for="importLinkInput">配置链接</label>
+      <input id="importLinkInput" type="text" placeholder="https://shui-tiao.github.io/kdocs-fetcher/docs/#/import?v=1&amp;d=…">
+      <div class="modal-actions">
+        <button id="importCancelBtn" class="secondary" type="button">取消</button>
+        <button id="importConfirmBtn" type="button">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 配置链接弹层：层内动作沿用原有按钮 id（exportBtn/importBtn），业务逻辑零改动 -->
+  <div id="linkLayer" class="modal-mask hidden">
+    <div class="modal">
+      <h3>配置链接</h3>
+      <div class="layer-act">
+        <div class="la-body"><b>导出配置链接</b><span>将当前配置加密写入链接</span></div>
+        <button id="exportBtn" class="act-btn" type="button" data-close-layer="linkLayer">导出</button>
+      </div>
+      <div class="layer-act">
+        <div class="la-body"><b>从链接导入</b><span>将覆盖当前配置</span></div>
+        <button id="importBtn" class="act-btn" type="button" data-close-layer="linkLayer">导入</button>
+      </div>
+      <div class="modal-actions"><button class="secondary" type="button" data-layer-close="linkLayer">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 云端数据弹层：层内动作沿用原有按钮 id（cloudUploadBtn/cloudRestoreBtn/cloudClearBtn），确认流程不变 -->
+  <div id="cloudLayer" class="modal-mask hidden">
+    <div class="modal">
+      <h3>云端数据</h3>
+      <div class="layer-act">
+        <div class="la-body"><b>迁出到云端</b><span>将当前配置加密写入浏览器账号</span></div>
+        <button id="cloudUploadBtn" class="act-btn" type="button" data-close-layer="cloudLayer">迁出</button>
+      </div>
+      <div class="layer-act">
+        <div class="la-body"><b>从云端移入</b><span>从浏览器账号读取配置并覆盖当前配置</span></div>
+        <button id="cloudRestoreBtn" class="act-btn" type="button" data-close-layer="cloudLayer">移入</button>
+      </div>
+      <div class="layer-act">
+        <div class="la-body"><b>清除云端数据</b><span>不会影响本机配置</span></div>
+        <button id="cloudClearBtn" class="act-btn warn" type="button" data-close-layer="cloudLayer">清除</button>
+      </div>
+      <div class="modal-actions"><button class="secondary" type="button" data-layer-close="cloudLayer">关闭</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="lock.js"></script>
+  <script src="wizard-open.js"></script>
+  <script src="migration.js"></script>
+  <script src="options.js"></script>
+  <script src="options-status.js"></script>
+</body>
+</html>

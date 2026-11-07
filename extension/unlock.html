@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>解锁 - 金山文档拉取器</title>
+  <style>
+    /* 设计语言：方案 C「一步 · 极简直取」（unlock.html 预览页）
+       6 个方框就是全部界面：红色锁形圆 + 一句话 + 6 方框 PIN + 一个按钮；
+       错误一行红字；锁定原因提示压成单行灰字；无抖动等惩罚性动效。
+       仅展示层重绘：真实输入框视觉隐藏，PIN 校验/失败计数/自动跳回逻辑不变 */
+    :root {
+      --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
+      --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
+      --err: #d5483c; --err-bg: #fdf0ee;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; padding: 0; min-width: 300px; background: #fff; color: var(--ink); font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 13px; line-height: 1.6; }
+    .page { width: 340px; max-width: 100%; margin: 0 auto; text-align: center; padding: 44px 28px 36px; }
+    /* 状态图标（统一组件，规格同 wizard/popup）：68px 浅灰圆底 + 线性 SVG（38px、stroke 3、圆头），锁定场景用红 */
+    .glyph { width: 68px; height: 68px; margin: 0 auto 16px; border-radius: 50%; background: var(--line-soft); display: flex; align-items: center; justify-content: center; }
+    .glyph svg { width: 38px; height: 38px; fill: none; stroke: var(--err); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    h2 { font-size: 16px; margin: 0 0 6px; }
+    .desc { font-size: 12px; color: var(--muted); line-height: 1.9; margin: 0 0 20px; }
+    .pin { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; cursor: text; }
+    .pin i { width: 38px; height: 46px; border: 1px solid #e4e4de; border-radius: 9px; position: relative; }
+    .pin i.filled::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--ink); }
+    .pin.focus i.cur { border-color: var(--ink); }
+    .err { font-size: 12px; color: var(--err); min-height: 18px; margin-bottom: 6px; }
+    .hint-line { font-size: 11px; color: var(--faint); line-height: 1.7; margin: -4px 0 12px; }
+    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .big-btn:hover { background: #2c2d30; }
+    .big-btn:disabled { background: #e8e8e4; color: var(--faint); cursor: default; }
+    /* 真实输入框视觉隐藏：保留键盘输入、自动聚焦与输入法行为 */
+    #pin { position: absolute; opacity: 0; width: 1px; height: 1px; border: 0; padding: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="glyph">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>扩展已锁定</h2>
+    <p class="desc">所有功能不可用，也不会发起任何请求<br>输入 6 位数字 PIN 解锁</p>
+    <div id="pinBoxes" class="pin" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="error" class="err"></div>
+    <div id="hint" class="hint-line" hidden></div>
+    <button id="unlockBtn" class="big-btn" type="button">解锁</button>
+    <input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="6 位数字 PIN">
+  </div>
+  <script src="lock.js"></script>
+  <script src="unlock.js"></script>
+</body>
+</html>

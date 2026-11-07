@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隐私政策 · 金山文档拉取器</title>
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #656d76;
+    --border: #d0d7de;
+    --brand: #1a73e8;
+    --brand-dark: #1557b0;
+    --accent: #e8f0fe;
+    --success: #1a7f37;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 15px;
+  }
+  header {
+    background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+    color: #fff;
+    padding: 56px 24px 48px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0 0 12px;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 15px;
+  }
+  header .badge {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 20px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+  main {
+    max-width: 760px;
+    margin: -28px auto 48px;
+    padding: 0 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    margin: 0 0 16px;
+    font-size: 20px;
+    color: var(--brand);
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .card h3 {
+    margin: 22px 0 8px;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .card p { margin: 8px 0; }
+  .card ul { margin: 8px 0 8px 22px; padding: 0; }
+  .card li { margin: 4px 0; }
+  .card a { color: var(--brand); text-decoration: none; }
+  .card a:hover { text-decoration: underline; }
+
+  .highlight {
+    background: var(--accent);
+    border-left: 4px solid var(--brand);
+    padding: 16px 20px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+  .highlight p { margin: 4px 0; font-weight: 500; }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+  .tag.local    { background: #e8f5e9; color: #1b5e20; }
+  .tag.network  { background: #fff3e0; color: #e65100; }
+  .tag.none     { background: #fce4ec; color: #880e4f; }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .table th, .table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table th {
+    background: #f6f8fa;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .table tr:last-child td { border-bottom: none; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+  footer a { color: var(--brand); }
+  @media (max-width: 540px) {
+    header { padding: 40px 16px 36px; }
+    header h1 { font-size: 24px; }
+    .card { padding: 24px 20px; border-radius: 10px; }
+    main { padding: 0 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>隐私政策</h1>
+  <p>金山文档拉取器 · Chrome / Edge 浏览器扩展</p>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>一、简介</h2>
+    <p>
+      <b>金山文档拉取器</b>（下称"本扩展"）是一款浏览器扩展，帮助用户快速从自己的
+      <a href="https://www.kdocs.cn/" target="_blank" rel="noopener">金山文档</a>
+      表格中拉取指定字段的最新一条记录，并支持一键复制到剪贴板。
+    </p>
+    <div class="highlight">
+      <p>🔒 核心原则：本扩展<strong>不收集任何个人身份信息</strong>，不跟踪用户浏览行为，
+         所有数据处理都在用户本地浏览器或用户本人配置的金山文档 Webhook 服务器上完成。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>二、我们处理哪些信息？</h2>
+
+    <h3>1. 用户主动配置的本地设置</h3>
+    <p>为了正常工作，本扩展会将以下内容保存在浏览器本地存储中（<code>chrome.storage.local</code>）：</p>
+    <table class="table">
+      <thead><tr><th>字段</th><th>用途</th><th>标签</th></tr></thead>
+      <tbody>
+        <tr><td>Webhook 链接</td><td>用户自己的金山文档脚本 Webhook 地址</td><td><span class="tag local">本地存储</span></td></tr>
+        <tr><td>脚本令牌（Token）</td><td>调用 Webhook 时的身份凭证</td><td><span class="tag local">本地存储</span></td></tr>
+        <tr><td>要拉取的字段列表</td><td>用户指定的字段名（如"内容"、"机构"）</td><td><span class="tag local">本地存储</span></td></tr>
+        <tr><td>数据位置偏好</td><td>最新记录位于表格顶部还是底部</td><td><span class="tag local">本地存储</span></td></tr>
+        <tr><td>自动复制字段</td><td>用户选定的自动复制字段名（可选）</td><td><span class="tag local">本地存储</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>2. 用户的金山文档表格数据（临时）</h3>
+    <ul>
+      <li>用户每次点击扩展图标时，扩展会向用户配置的 Webhook 发起一次 HTTPS 请求。</li>
+      <li>Webhook 返回的<strong>最新一条记录</strong>仅在扩展弹窗打开期间存在于浏览器内存中，
+          弹窗关闭或刷新后立即清除，<b>不会写入任何持久化存储</b>。</li>
+    </ul>
+
+    <h3>3. 明确不处理的信息</h3>
+    <ul>
+      <li>❌ 浏览器历史记录、书签、已安装扩展列表</li>
+      <li>❌ 用户访问过的任何网页内容</li>
+      <li>❌ IP 地址、设备标识符、地理位置</li>
+      <li>❌ 完整表格数据（仅拉取最新一条）</li>
+      <li>❌ Cookie / LocalStorage / SessionToken（本扩展不使用也不读取）</li>
+    </ul>
+    <p><span class="tag none">零跟踪</span> 零分析 · 零广告 SDK</p>
+  </div>
+
+  <div class="card">
+    <h2>三、网络通信</h2>
+
+    <h3>唯一的出站请求</h3>
+    <p>本扩展<strong>只会向以下两类地址发送 HTTPS 请求</strong>：</p>
+    <ul>
+      <li>
+        <code>https://www.kdocs.cn/api/v3/ide/file/.../script/.../sync_task</code>
+        —— 即用户自己配置的金山文档 Webhook 接口，用于拉取最新一条记录。
+      </li>
+    </ul>
+    <p>请求体仅包含：<code>{ Context: { argv: { fields, order } } }</code>，即用户配置的字段名和排序偏好。</p>
+
+    <h3>不会向任何第三方发送数据</h3>
+    <ul>
+      <li>没有 Google Analytics、Mixpanel、友盟等分析 SDK</li>
+      <li>没有自建后端服务器接收数据</li>
+      <li>没有任何广告或联盟追踪像素</li>
+    </ul>
+    <p><span class="tag network">host_permissions</span> 声明了
+       <code>https://www.kdocs.cn/*</code> 与 <code>&lt;all_urls&gt;</code>，
+       但扩展<strong>主动发起的网络请求只有金山文档 Webhook 一处</strong>。
+       <code>&lt;all_urls&gt;</code> 仅用于「获取数据并粘贴」功能向当前页面写入文本，
+       不会用于请求任何其他服务器。</p>
+    <p>右键粘贴功能收到的数据流向为：金山文档 Webhook → 扩展后台 → 当前标签页的输入框。
+       数据不经过任何中转服务器，也不会被额外保存。</p>
+  </div>
+
+  <div class="card">
+    <h2>四、扩展权限说明</h2>
+    <p>
+      安装本扩展时，您的浏览器会列出它申请的权限。向您说明本扩展的实际用途：
+    </p>
+    <table class="table">
+      <thead><tr><th>权限</th><th>浏览器提示</th><th>实际用途</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>storage</code></td>
+          <td>读取和更改您在本扩展中的数据</td>
+          <td>仅保存 Webhook 地址、令牌、字段列表等本地配置。</td>
+        </tr>
+        <tr>
+          <td><code>declarativeNetRequest</code></td>
+          <td>阻止任何页面上的内容</td>
+          <td>仅用于修改发往金山文档接口的请求头使其符合规范</td>
+        </tr>
+        <tr>
+          <td><code>sidePanel</code></td>
+          <td>在侧边栏中显示内容</td>
+          <td>用于在浏览器侧边栏中打开本扩展自带的界面（默认为数据查看主界面 popup.html），用户也可在设置中选择「弹窗」方式打开。不支持侧边栏的浏览器会自动回退为普通弹窗。不读取、不修改任何网页内容。</td>
+        </tr>
+        <tr>
+          <td><code>contextMenus</code></td>
+          <td>向右键菜单添加选项</td>
+          <td>仅在用户于设置中主动开启「向右键菜单增加获取数据并粘贴功能」后，向网页输入框的右键菜单添加一项「获取数据并粘贴」。用户关闭该选项后菜单立即移除；扩展不会向其他场景的右键菜单添加任何条目，也不读取右键菜单中的其他内容。</td>
+        </tr>
+        <tr>
+          <td><code>scripting</code></td>
+          <td>读取和更改您在所有网站上的数据</td>
+          <td>仅用于执行上述「获取数据并粘贴」功能：把用户主动配置字段的值填入当前页面中用户右键点击（或已聚焦）的输入框。扩展不会主动注入脚本到任意网页，仅在用户点击该右键菜单项时，对当前标签页按需注入一个内容脚本，用于显示进度气泡并写入文本。</td>
+        </tr>
+        <tr>
+          <td><code>host_permissions</code><br>（<code>https://www.kdocs.cn/*</code>）</td>
+          <td>读取和更改 www.kdocs.cn 上的数据</td>
+          <td>用于向金山文档 Webhook 发起 HTTPS 请求。除该地址外，扩展不会主动发起任何其他网络请求。</td>
+        </tr>
+        <tr>
+          <td><code>host_permissions</code><br>（<code>&lt;all_urls&gt;</code>）</td>
+          <td>读取和更改您在所有网站上的数据</td>
+          <td>仅为支持「获取数据并粘贴」功能而申请。内容脚本（content.js）只做三件事：接收后台传来的、用户自己配置字段的文本值；在页面上显示一个进度气泡；把该文本写入用户右键点击的输入框。它<strong>不读取页面其他内容、不读取任何登录凭证或 Cookie、不修改页面其他元素，也不会把任何网页数据传输到扩展外部或第三方</strong>。若用户从未启用该右键功能，此权限不会被实际使用。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight">
+      <p>本扩展没有添加任何 block、redirect、allow 等拦截规则，不会屏蔽任何网站的请求、广告或页面元素。
+         声明为 <code>&lt;all_urls&gt;</code> 的内容脚本仅服务于用户主动启用的「获取数据并粘贴」功能，
+         其唯一副作用是在用户点击右键菜单项时向当前输入框写入一段文本。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>五、数据保留与删除</h2>
+
+    <h3>用户可以随时清除所有数据</h3>
+    <ul>
+      <li>打开 Chrome / Edge 的 <code>扩展管理页</code> → 找到本扩展 → 点击"详情"</li>
+      <li>点击"扩展选项" → 在弹出的设置页中删除现有字段、清空 Webhook 和令牌后保存</li>
+      <li>或者直接"移除扩展"，卸载后浏览器会自动清除 <code>chrome.storage.local</code> 中的所有条目</li>
+    </ul>
+
+    <h3>内存数据</h3>
+    <p>弹窗关闭、浏览器重启或 Tab 被回收时，当前显示的表格数据会立即从内存中释放，无需额外操作。</p>
+  </div>
+
+  <div class="card">
+    <h2>六、第三方服务</h2>
+    <p>本扩展依赖以下第三方服务来完成核心功能，请注意阅读它们各自的隐私政策：</p>
+    <ul>
+      <li>
+        <b>金山文档</b>
+        请查阅 <a href="https://www.kdocs.cn/privacy" target="_blank" rel="noopener">金山文档隐私政策</a>。
+      </li>
+      <li>
+        <b>您的浏览器</b>
+      </li>
+    </ul>
+    <p>本扩展<strong>不与上述第三方共享任何额外信息</strong>，仅向金山 Webhook 发送必要的字段名参数。</p>
+  </div>
+
+
+  <div class="card">
+    <h2>联系我们</h2>
+    <p>
+      请通过以下方式联系：
+    </p>
+    <ul>
+      <li>📧 邮箱：<a href="mailto:shuitiao@qq.com">shuitiao@qq.com</a></li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  <p>© 2026 shuitiao · 本扩展遵循 Chrome Web Store 和 Microsoft Edge Add-ons 的开发者条款</p>
+</footer>
+
+</body>
+</html>
