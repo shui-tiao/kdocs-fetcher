@@ -69,11 +69,11 @@
     /* 底部「打开配置向导」CTA 已删：状态带右上角胶囊四态常驻，不再保留同功能第二入口 */
 
     /* ===== 平铺分区（无手风琴）：低频内容靠 11px 灰字母分区标 + 发丝线控制密度 ===== */
-    .sect { margin: 4px 0 0; padding: 13px 0 4px; border-top: 1px solid var(--line); }
+    .sect { position: relative; margin: 4px 0 0; padding: 13px 0 4px; border-top: 1px solid var(--line); }
     .sect .s-label { font-size: 11px; letter-spacing: 1.5px; color: var(--faint); margin-bottom: 4px; }
-    /* 不可用分区压暗而非隐藏，保持空间结构稳定；仍可交互 */
-    .sect.dim { opacity: .42; }
-    .sect.dim .f-row .v::after { content: '（连接后可用）'; color: var(--faint); font-size: 11px; }
+    /* 不可用分区：整体置灰并锁定，透明遮罩接管指针，保留结构稳定 */
+    .sect.dim { opacity: .45; filter: grayscale(1); cursor: not-allowed; }
+    .sect.dim::before { content: ''; position: absolute; inset: 0; z-index: 2; cursor: not-allowed; }
 
     /* 名称—状态—操作 同一行直读 */
     .f-row { display: flex; align-items: center; gap: 8px; padding: 8px 2px; font-size: 13px; }
@@ -179,6 +179,9 @@
     .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: var(--toast-err); border-radius: 999px; box-shadow: 0 4px 12px rgba(213, 72, 60, .35); animation: toast-in .2s ease-out; }
     .toast.ok { background: var(--toast-ok); box-shadow: 0 4px 12px rgba(29, 154, 78, .35); }
     .toast.hidden { display: none; }
+    /* 置灰分区悬浮提示：跟随指针，纯展示不拦截事件 */
+    .dim-tip { position: fixed; z-index: 60; pointer-events: none; padding: 7px 12px; font-size: 12px; line-height: 1.5; color: var(--ink); background: var(--card); border: 1px solid var(--input-border); border-radius: 8px; box-shadow: var(--shadow-modal); white-space: nowrap; }
+    .dim-tip.hidden { display: none; }
     @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
     /* 底部：关于 */
@@ -387,6 +390,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
+  <div id="dimTip" class="dim-tip hidden" role="tooltip">需要完善配置后才可设置</div>
 
   <script src="lock.js"></script>
   <script src="wizard-open.js"></script>

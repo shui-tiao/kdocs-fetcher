@@ -9,7 +9,81 @@
   const ver = document.getElementById('aboutVersion')
   const sectFields = document.getElementById('sectFields')
   const sectBehavior = document.getElementById('sectBehavior')
+  const dimTip = document.getElementById('dimTip')
   if (!band || !window.chrome || !chrome.storage || !chrome.storage.local) return
+
+  // 置灰分区整体锁定：子节点 inert 阻断鼠标/键盘，section 自身保留 hover 供提示
+  function setSectDim(sect, dim) {
+    if (!sect || sect.classList.contains('dim') === dim) return
+    sect.classList.toggle('dim', dim)
+    if (dim) sect.setAttribute('aria-disabled', 'true')
+    else sect.removeAttribute('aria-disabled')
+    for (const child of sect.children) {
+      if (dim) child.setAttribute('inert', '')
+      else child.removeAttribute('inert')
+    }
+    if (dim && sect.contains(document.activeElement)) {
+      try { document.activeElement.blur() } catch (_) {}
+    }
+    if (!dim && tipTarget === sect) hideDimTip()
+  }
+
+  // 悬浮提示：进入置灰分区后短暂停留即跟随指针显示
+  let tipTarget = null
+  let tipTimer = null
+  function hideDimTip() {
+    clearTimeout(tipTimer)
+    tipTimer = null
+    tipTarget = null
+    if (dimTip) dimTip.classList.add('hidden')
+  }
+  function placeDimTip(x, y) {
+    const r = dimTip.getBoundingClientRect()
+    let left = x + 14
+    let top = y + 18
+    if (left + r.width > window.innerWidth - 8) left = x - r.width - 14
+    if (top + r.height > window.innerHeight - 8) top = y - r.height - 12
+    dimTip.style.left = Math.max(8, left) + 'px'
+    dimTip.style.top = Math.max(8, top) + 'px'
+  }
+  if (dimTip) {
+    document.addEventListener('mousemove', (e) => {
+      const sect = e.target instanceof Element ? e.target.closest('.sect.dim') : null
+      if (!sect) {
+        if (tipTarget) hideDimTip()
+        return
+      }
+      if (tipTarget !== sect) {
+        clearTimeout(tipTimer)
+        tipTarget = sect
+        dimTip.classList.add('hidden')
+        tipTimer = setTimeout(() => {
+          dimTip.classList.remove('hidden')
+          placeDimTip(e.clientX, e.clientY)
+        }, 260)
+        return
+      }
+      if (!dimTip.classList.contains('hidden')) placeDimTip(e.clientX, e.clientY)
+    }, { passive: true })
+    document.addEventListener('mouseleave', hideDimTip)
+    window.addEventListener('scroll', hideDimTip, true)
+    window.addEventListener('blur', hideDimTip)
+  }
+  // 遮罩之外的兜底：键盘激活或脚本点击也不允许穿透
+  for (const sect of [sectFields, sectBehavior]) {
+    if (!sect) continue
+    sect.addEventListener('click', (e) => {
+      if (!sect.classList.contains('dim')) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+    }, true)
+    sect.addEventListener('keydown', (e) => {
+      if (sect.classList.contains('dim') && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+      }
+    }, true)
+  }
 
   if (ver && chrome.runtime.getManifest) {
     try { ver.textContent = 'v' + chrome.runtime.getManifest().version } catch (_) {}
@@ -47,20 +121,20 @@
       band.classList.add('ok')
       txt.textContent = '已连接' + (cfg.sheet ? ' · 数据表「' + cfg.sheet + '」' : '')
       sub.textContent = '配置完整，弹窗即可拉取最新记录'
-      if (sectFields) sectFields.classList.remove('dim')
-      if (sectBehavior) sectBehavior.classList.remove('dim')
+      setSectDim(sectFields, false)
+      setSectDim(sectBehavior, false)
     } else if (!hasWebhook && !hasToken && !fieldCount) {
       band.classList.add('off')
       txt.textContent = '尚未配置'
       sub.textContent = '还差 ' + missing.length + ' 项即可开始拉取最新记录'
-      if (sectFields) sectFields.classList.add('dim')
-      if (sectBehavior) sectBehavior.classList.add('dim')
+      setSectDim(sectFields, true)
+      setSectDim(sectBehavior, true)
     } else {
       band.classList.add('partial')
       txt.textContent = '配置不完整'
       sub.textContent = '还差 ' + missing.length + ' 项：' + missing.join('、')
-      if (sectFields) sectFields.classList.add('dim')
-      if (sectBehavior) sectBehavior.classList.remove('dim')
+      setSectDim(sectFields, true)
+      setSectDim(sectBehavior, false)
     }
 
     // 逐项状态与就地操作（数据表为可选项，未配置态不给操作）
