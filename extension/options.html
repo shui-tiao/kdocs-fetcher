@@ -10,20 +10,42 @@
       --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
       --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
       --err: #d5483c; --ok: #1d9a4e; --busy: #d8b73c;
+      --bg: #ffffff; --card: #ffffff; --input-bg: #ffffff; --input-border: #e4e4de;
+      --btn-bg: #17181a; --btn-fg: #ffffff; --btn-hover: #2c2d30; --btn-active: #45464a;
+      --press-bg: #e2e2dc; --switch-off: #ddd9d2; --switch-knob: #ffffff; --switch-knob-on: #ffffff;
+      --err-bg: #fdf0ee; --err-border: #f4b4ae; --err-strong: #a50e0e;
+      --danger-hover: #f9ddda; --danger-active: #f3cfc9; --danger-code-bg: #fff3f2;
+      --toast-err: #d5483c; --toast-ok: #1d9a4e;
+      --overlay: rgba(23, 24, 26, .45);
+      --shadow-modal: 0 8px 24px rgba(23, 24, 26, .2);
+    }
+    :root[data-theme="dark"] {
+      --ink: #f0f0ec; --muted: #9d9d97; --faint: #74746e;
+      --line: #2e2f33; --line-soft: #26272b; --accent: #ffd23f;
+      --err: #ff7a6e; --ok: #4fd07a; --busy: #d8b73c;
+      --bg: #17181a; --card: #202124; --input-bg: #1b1c1e; --input-border: #3a3b40;
+      --btn-bg: #f0f0ec; --btn-fg: #17181a; --btn-hover: #e0e0da; --btn-active: #cdcdc6;
+      --press-bg: #333438; --switch-off: #4a4b50; --switch-knob: #e8e8e3; --switch-knob-on: #17181a;
+      --err-bg: #3a2320; --err-border: #6b3a35; --err-strong: #ff9d94;
+      --danger-hover: #4a2b28; --danger-active: #57332f; --danger-code-bg: #3d2724;
+      --toast-err: #d5483c; --toast-ok: #1d9a4e;
+      --overlay: rgba(0, 0, 0, .6);
+      --shadow-modal: 0 8px 24px rgba(0, 0, 0, .55);
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; width: 420px; margin: 24px auto 48px; color: var(--ink); font-size: 13px; }
+    html { background: var(--bg); }
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; width: 420px; margin: 24px auto 48px; color: var(--ink); font-size: 13px; background: var(--bg); }
     .opt-head h2 { font-size: 17px; margin: 0 0 2px; font-weight: 700; }
     .opt-head .sub { font-size: 11px; letter-spacing: 1.5px; color: var(--faint); margin: 0 0 16px; }
 
     /* ===== 连接状态带（第一屏）：一句话 + 状态点回答「现在能不能用」，逐项给状态与就地操作 ===== */
-    .status-band { margin: 0 0 4px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: #fff; }
+    .status-band { margin: 0 0 4px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: var(--card); }
     .status-band .line1 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
     /* 头部结论文字占满剩余宽、过长省略；向导入口胶囊贴卡片右内边距、与首行垂直居中 */
     .status-band .line1 #connStatusText { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .status-band .line1 .act-btn { margin: 0; flex: none; }
-    .sdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #c8c8c2; }
+    .sdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
     .status-band.busy .sdot { background: var(--busy); }
     .status-band.ok .sdot { background: var(--ok); }
     .status-band.partial .sdot { background: var(--busy); }
@@ -62,17 +84,17 @@
     .f-row .act { flex: none; height: 32px; padding: 0 16px; text-decoration: none; }
 
     /* 行为区开关（checkbox 换肤） */
-    input.switch { appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: 999px; background: #ddd9d2; position: relative; cursor: pointer; margin: 0 0 0 auto; flex: none; transition: background .15s; padding: 0; border: none; }
-    input.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(23, 24, 26, .25); }
-    input.switch:checked { background: var(--ink); }
-    input.switch:checked::after { transform: translateX(16px); }
+    input.switch { appearance: none; -webkit-appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--switch-off); position: relative; cursor: pointer; margin: 0 0 0 auto; flex: none; transition: background .15s; padding: 0; border: none; }
+    input.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--switch-knob); transition: transform .15s; box-shadow: 0 1px 2px rgba(23, 24, 26, .25); }
+    input.switch:checked { background: var(--btn-bg); }
+    input.switch:checked::after { transform: translateX(16px); background: var(--switch-knob-on); }
     input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     label.f-row { display: flex; margin: 0; cursor: pointer; }
 
     /* 字段胶囊：✓ = 自动复制字段；虚线 = 带 :date 等修饰 */
     .field-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 2px; }
-    .fc { display: inline-flex; align-items: center; padding: 3px 11px; font-size: 12px; border: 1px solid #e4e4de; border-radius: 999px; background: #fff; color: var(--ink); }
-    .fc.star { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .fc { display: inline-flex; align-items: center; padding: 3px 11px; font-size: 12px; border: 1px solid var(--input-border); border-radius: 999px; background: var(--card); color: var(--ink); }
+    .fc.star { background: var(--accent); border-color: var(--accent); color: #17181a; font-weight: 600; }
     .fc.date { border-style: dashed; }
     .fc.none { border-style: dashed; color: var(--faint); background: transparent; }
     .fc.edit { user-select: none; }
@@ -89,25 +111,25 @@
     .chip-add-row button { flex: none; margin: 0; }
 
     label { display: block; font-size: 13px; margin: 12px 0 4px; }
-    input, select { width: 100%; padding: 9px 11px; font-size: 13px; border: 1px solid #e4e4de; border-radius: 10px; color: var(--ink); font-family: inherit; background: #fff; }
+    input, select { width: 100%; padding: 9px 11px; font-size: 13px; border: 1px solid var(--input-border); border-radius: 10px; color: var(--ink); font-family: inherit; background: var(--input-bg); }
     /* select 与胶囊按钮视觉协调：同高 32px，但保留输入系外观（10px 圆角，不做按钮样式） */
     select { height: 32px; padding-top: 0; padding-bottom: 0; }
     input:focus, select:focus { outline: none; border-color: var(--ink); }
     input[type="radio"], input[type="checkbox"]:not(.switch) { width: auto; margin: 0 6px 0 0; }
     /* ===== 按钮令牌（全页唯一体系）：胶囊 999px · 高 32px · 字号 12px · 字重 600 · hover/active 变底色 · focus-visible 黄描边
        primary（黑）＝页面/弹层唯一主操作；secondary（浅灰）＝中等权重；danger（浅红）＝与 secondary 同形状仅语义色；text＝状态带就地动作（见 .svc .act） */
-    button { margin-top: 16px; display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 16px; font-size: 12px; font-weight: 600; background: var(--ink); color: #fff; border: none; border-radius: 999px; cursor: pointer; font-family: inherit; }
-    button:hover { background: #2c2d30; }
-    button:active { background: #45464a; }
+    button { margin-top: 16px; display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 16px; font-size: 12px; font-weight: 600; background: var(--btn-bg); color: var(--btn-fg); border: none; border-radius: 999px; cursor: pointer; font-family: inherit; }
+    button:hover { background: var(--btn-hover); }
+    button:active { background: var(--btn-active); }
     button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     /* secondary 档：打开 / 管理 / 添加 / 复制 / 导出 / 导入 / 迁出 / 移入 / 取消 / 关闭 */
     button.secondary, .act-btn, .field-row .del, .chip-add-row button, .f-row .act { background: var(--line-soft); color: var(--ink); }
     button.secondary:hover, .act-btn:hover, .field-row .del:hover, .chip-add-row button:hover, .f-row .act:hover { background: var(--line); }
-    button.secondary:active, .act-btn:active, .field-row .del:active, .chip-add-row button:active, .f-row .act:active { background: #e2e2dc; }
+    button.secondary:active, .act-btn:active, .field-row .del:active, .chip-add-row button:active, .f-row .act:active { background: var(--press-bg); }
     /* danger 档：锁定 / 清除云端数据（与 secondary 同形状同尺寸，仅语义色） */
-    .act-btn.warn { background: #fdf0ee; color: var(--err); }
-    .act-btn.warn:hover { background: #f9ddda; }
-    .act-btn.warn:active { background: #f3cfc9; }
+    .act-btn.warn { background: var(--err-bg); color: var(--err); }
+    .act-btn.warn:hover { background: var(--danger-hover); }
+    .act-btn.warn:active { background: var(--danger-active); }
     .field-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .field-row input { flex: 1; }
     .field-row .del { flex-shrink: 0; margin-top: 0; align-self: center; }
@@ -116,22 +138,22 @@
     .radio-inline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin: 0 0 0 10px; cursor: pointer; }
     .radio-inline:has(input:checked) { color: var(--ink); font-weight: 600; }
     .hidden { display: none !important; }
-    .migration-stats { margin: 4px 0 10px; padding: 8px 12px; font-size: 12px; line-height: 1.8; color: #6f6f6a; background: var(--line-soft); border-radius: 10px; }
+    .migration-stats { margin: 4px 0 10px; padding: 8px 12px; font-size: 12px; line-height: 1.8; color: var(--muted); background: var(--line-soft); border-radius: 10px; }
     .migration-stats b { color: var(--ink); }
     /* 长文本防溢出：URL/令牌等无空格长串任意位置可断行；状态列用省略号避免撑破行 */
     .toast, .status-band .line2, .migration-stats { overflow-wrap: anywhere; hyphens: none; }
     .svc .st { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* 弹窗 / 提示（DOM 未动） */
-    .modal-mask { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(23, 24, 26, .45); z-index: 10; }
+    .modal-mask { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--overlay); z-index: 10; }
     .modal-mask.hidden { display: none; }
-    .modal { width: 340px; padding: 20px; background: #fff; border-radius: 14px; box-shadow: 0 8px 24px rgba(23, 24, 26, .2); }
+    .modal { width: 340px; padding: 20px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow-modal); }
     .modal h3 { font-size: 15px; margin: 0 0 8px; }
-    .modal p { font-size: 12px; line-height: 1.7; color: #6f6f6a; margin: 0 0 12px; }
-    .modal .risk { margin: 0 0 12px; padding: 10px 12px; font-size: 12px; line-height: 1.7; color: #a50e0e; background: #fdf0ee; border: 1px solid #f4b4ae; border-radius: 10px; }
+    .modal p { font-size: 12px; line-height: 1.7; color: var(--muted); margin: 0 0 12px; }
+    .modal .risk { margin: 0 0 12px; padding: 10px 12px; font-size: 12px; line-height: 1.7; color: var(--err-strong); background: var(--err-bg); border: 1px solid var(--err-border); border-radius: 10px; }
     .modal .risk.hidden { display: none !important; }
     .modal .risk b { display: block; margin-bottom: 4px; font-size: 13px; color: var(--err); }
-    .modal .risk code { font-family: Consolas, monospace; padding: 0 3px; background: #fff3f2; border-radius: 3px; }
+    .modal .risk code { font-family: Consolas, monospace; padding: 0 3px; background: var(--danger-code-bg); border-radius: 3px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
     .modal-actions button { margin-top: 0; }
     /* 迁移弹层内的动作行：标题 + 说明 + 动作按钮 */
@@ -143,9 +165,9 @@
     .layer-act .act-btn { flex: none; margin: 0; }
     .export-result { margin-top: 4px; }
     .export-result .field-row { margin-bottom: 0; }
-    .export-result textarea { flex: 1; height: 88px; padding: 8px; font-family: Consolas, monospace; font-size: 12px; line-height: 1.6; color: var(--ink); border: 1px solid #e4e4de; border-radius: 10px; resize: none; word-break: break-all; }
-    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: var(--err); border-radius: 999px; box-shadow: 0 4px 12px rgba(213, 72, 60, .35); animation: toast-in .2s ease-out; }
-    .toast.ok { background: var(--ok); box-shadow: 0 4px 12px rgba(29, 154, 78, .35); }
+    .export-result textarea { flex: 1; height: 88px; padding: 8px; font-family: Consolas, monospace; font-size: 12px; line-height: 1.6; color: var(--ink); background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; resize: none; word-break: break-all; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 360px; padding: 10px 18px; font-size: 13px; line-height: 1.6; color: #fff; background: var(--toast-err); border-radius: 999px; box-shadow: 0 4px 12px rgba(213, 72, 60, .35); animation: toast-in .2s ease-out; }
+    .toast.ok { background: var(--toast-ok); box-shadow: 0 4px 12px rgba(29, 154, 78, .35); }
     .toast.hidden { display: none; }
     @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
@@ -154,6 +176,7 @@
     .about-row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 14px; font-size: 11px; color: var(--faint); }
     .about-row .ver { font-weight: 700; letter-spacing: .5px; }
   </style>
+  <script src="theme.js"></script>
 </head>
 <body>
   <div class="opt-head">
@@ -219,6 +242,19 @@
     <div class="tip">浏览器不支持侧边栏时会自动改用弹窗</div>
   </section>
 
+  <!-- 平铺分区：外观 -->
+  <section class="sect" id="sectAppearance">
+    <div class="s-label">外观</div>
+    <div class="f-row"><span class="nm">主题</span><span class="v">
+      <select id="themeSelect">
+        <option value="auto">跟随系统</option>
+        <option value="light">亮色</option>
+        <option value="dark">暗色</option>
+      </select>
+    </span></div>
+    <div class="tip">「跟随系统」会随操作系统的深浅色设置自动切换</div>
+  </section>
+
   <!-- 平铺分区：安全 -->
   <section class="sect" id="sectSecurity">
     <div class="s-label">安全</div>
@@ -247,7 +283,7 @@
   <div id="exportModal" class="modal-mask hidden">
     <div class="modal">
       <h3>配置链接已生成</h3>
-      <p>这是你唯一一次看到该链接的机会，<b style="display:inline;color:#d93025">关闭后将无法再次查看</b>。请立即完整复制并妥善保存。</p>
+      <p>这是你唯一一次看到该链接的机会，<b style="display:inline;color:var(--err)">关闭后将无法再次查看</b>。请立即完整复制并妥善保存。</p>
       <div class="export-result">
         <label for="exportLink">配置链接</label>
         <div class="field-row">

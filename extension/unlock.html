@@ -12,10 +12,20 @@
       --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
       --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
       --err: #d5483c; --err-bg: #fdf0ee;
+      --bg: #ffffff; --input-border: #e4e4de;
+      --btn-bg: #17181a; --btn-fg: #ffffff; --btn-hover: #2c2d30; --btn-disabled-bg: #e8e8e4;
+    }
+    :root[data-theme="dark"] {
+      --ink: #f0f0ec; --muted: #9d9d97; --faint: #74746e;
+      --line: #2e2f33; --line-soft: #26272b; --accent: #ffd23f;
+      --err: #ff7a6e; --err-bg: #3a2320;
+      --bg: #17181a; --input-border: #3a3b40;
+      --btn-bg: #f0f0ec; --btn-fg: #17181a; --btn-hover: #e0e0da; --btn-disabled-bg: #2a2b2f;
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; padding: 0; min-width: 300px; background: #fff; color: var(--ink); font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 13px; line-height: 1.6; }
+    html { background: var(--bg); }
+    body { margin: 0; padding: 0; min-width: 300px; background: var(--bg); color: var(--ink); font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 13px; line-height: 1.6; }
     .page { width: 340px; max-width: 100%; margin: 0 auto; text-align: center; padding: 44px 28px 36px; }
     /* 状态图标（统一组件，规格同 wizard/popup）：68px 浅灰圆底 + 线性 SVG（38px、stroke 3、圆头），锁定场景用红 */
     .glyph { width: 68px; height: 68px; margin: 0 auto 16px; border-radius: 50%; background: var(--line-soft); display: flex; align-items: center; justify-content: center; }
@@ -23,17 +33,18 @@
     h2 { font-size: 16px; margin: 0 0 6px; }
     .desc { font-size: 12px; color: var(--muted); line-height: 1.9; margin: 0 0 20px; }
     .pin { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; cursor: text; }
-    .pin i { width: 38px; height: 46px; border: 1px solid #e4e4de; border-radius: 9px; position: relative; }
+    .pin i { width: 38px; height: 46px; border: 1px solid var(--input-border); border-radius: 9px; position: relative; }
     .pin i.filled::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--ink); }
     .pin.focus i.cur { border-color: var(--ink); }
     .err { font-size: 12px; color: var(--err); min-height: 18px; margin-bottom: 6px; }
     .hint-line { font-size: 11px; color: var(--faint); line-height: 1.7; margin: -4px 0 12px; }
-    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
-    .big-btn:hover { background: #2c2d30; }
-    .big-btn:disabled { background: #e8e8e4; color: var(--faint); cursor: default; }
+    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--btn-bg); color: var(--btn-fg); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .big-btn:hover { background: var(--btn-hover); }
+    .big-btn:disabled { background: var(--btn-disabled-bg); color: var(--faint); cursor: default; }
     /* 真实输入框视觉隐藏：保留键盘输入、自动聚焦与输入法行为 */
     #pin { position: absolute; opacity: 0; width: 1px; height: 1px; border: 0; padding: 0; pointer-events: none; }
   </style>
+  <script src="theme.js"></script>
 </head>
 <body>
   <div class="page">

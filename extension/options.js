@@ -284,7 +284,7 @@ document.addEventListener('drop', (e) => {
   e.preventDefault()
 })
 
-chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch', 'contextMenuPaste', 'charByCharPaste'], (cfg) => {
+chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'autoCopyField', 'autoFetch', 'contextMenuPaste', 'charByCharPaste', 'theme'], (cfg) => {
   if (cfg.webhookUrl) urlInput.value = cfg.webhookUrl
   if (cfg.token) tokenInput.value = cfg.token
   if (cfg.sheet) sheetInput.value = cfg.sheet
@@ -300,6 +300,8 @@ chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'au
   autoFetchInput.checked = cfg.autoFetch !== false
   const openMode = cfg.defaultOpenMode === 'panel' ? 'panel' : 'popup'
   document.getElementById('openModeSelect').value = openMode
+  const theme = cfg.theme === 'light' || cfg.theme === 'dark' ? cfg.theme : 'auto'
+  document.getElementById('themeSelect').value = theme
   contextMenuPasteInput.checked = cfg.contextMenuPaste === true
   charByCharPasteInput.checked = cfg.charByCharPaste === true
   updateContextMenuPasteUI()
@@ -324,6 +326,11 @@ const openModeSelect = document.getElementById('openModeSelect')
 openModeSelect.addEventListener('change', () => {
   // background.js 监听该键即时切换弹窗/侧边栏
   chrome.storage.local.set({ defaultOpenMode: openModeSelect.value }, () => showToast('已保存', true))
+})
+const themeSelect = document.getElementById('themeSelect')
+themeSelect.addEventListener('change', () => {
+  // theme.js 监听该键即时切换所有扩展页面的主题
+  chrome.storage.local.set({ theme: themeSelect.value }, () => showToast('已保存', true))
 })
 
 // ===== 配置迁移弹层：两个入口（配置链接 / 云端数据），层内动作按钮沿用原有 id 与处理器 =====

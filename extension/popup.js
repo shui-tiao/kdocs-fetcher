@@ -130,6 +130,8 @@ function createSvg(paths, stroke) {
   const svg = document.createElementNS(NS, 'svg')
   svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('stroke', stroke)
+  // 用 CSS 变量着色时，style 优先，确保暗色主题下图标随变量切换
+  svg.style.stroke = stroke
   for (const d of paths) {
     const p = document.createElementNS(NS, 'path')
     p.setAttribute('d', d)
@@ -507,7 +509,7 @@ async function fetchLatest() {
       tag: versionTag()
     }
     renderQuiet({
-      stroke: '#6f6f6a',
+      stroke: 'var(--muted)',
       paths: GLYPH_INFO,
       title: '还差一步配置',
       descLines: ['缺少 ' + missing.join('和') + '。', '跟随配置向导，几分钟即可完成连接。'],
@@ -653,7 +655,7 @@ if (chrome.runtime.getContexts) {
   if (cfg.autoFetch === false) {
     // 待机态：安静态说明 + 底部「重新获取」主按钮（安静区内不再重复放同一动作的按钮）
     renderQuiet({
-      stroke: '#6f6f6a',
+      stroke: 'var(--muted)',
       paths: GLYPH_INFO,
       title: '自动拉取已关闭',
       descLines: ['到表格更新数据后，点下方「重新获取」手动拉取最新一条。', '可在扩展配置中重新开启自动拉取。']

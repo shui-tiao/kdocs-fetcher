@@ -9,11 +9,23 @@
       --ink: #17181a; --muted: #a0a09a; --faint: #b4b4ae;
       --line: #f0f0ec; --line-soft: #f6f6f3; --accent: #ffd23f;
       --err: #d5483c; --err-bg: #fdf0ee; --ok: #1d9a4e; --ok-bg: #ecf8ef;
+      --bg: #ffffff; --card: #ffffff;
+      --btn-bg: #17181a; --btn-fg: #ffffff; --btn-hover: #2c2d30; --btn-disabled-bg: #e8e8e4;
+      --shadow-menu: 0 10px 26px rgba(23, 24, 26, .14);
+    }
+    :root[data-theme="dark"] {
+      --ink: #f0f0ec; --muted: #9d9d97; --faint: #74746e;
+      --line: #2e2f33; --line-soft: #26272b; --accent: #ffd23f;
+      --err: #ff7a6e; --err-bg: #3a2320; --ok: #4fd07a; --ok-bg: #17301f;
+      --bg: #17181a; --card: #202124;
+      --btn-bg: #f0f0ec; --btn-fg: #17181a; --btn-hover: #e0e0da; --btn-disabled-bg: #2a2b2f;
+      --shadow-menu: 0 10px 26px rgba(0, 0, 0, .55);
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
+    html { background: var(--bg); }
     body {
-      width: 340px; max-height: 600px; margin: 0; overflow-y: auto; background: #fff;
+      width: 340px; max-height: 600px; margin: 0; overflow-y: auto; background: var(--bg);
       color: var(--ink); font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
       font-size: 13px; line-height: 1.6; position: relative;
     }
@@ -25,7 +37,7 @@
     .vermark { font-size: 9px; letter-spacing: .5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .top .more { margin-left: auto; width: 22px; height: 22px; border: none; background: none; color: var(--faint); font-size: 15px; cursor: pointer; border-radius: 6px; }
     .top .more:hover { background: var(--line-soft); color: var(--ink); }
-    .menu { position: absolute; top: 36px; right: 12px; z-index: 5; width: 150px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 26px rgba(23,24,26,.14); padding: 6px; }
+    .menu { position: absolute; top: 36px; right: 12px; z-index: 5; width: 150px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-menu); padding: 6px; }
     .menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; font-size: 13px; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--ink); font-family: inherit; }
     .menu button:hover { background: var(--line-soft); }
     .menu button:disabled { color: var(--faint); cursor: default; background: none; }
@@ -55,7 +67,7 @@
     .loading-sub { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 10px; }
 
     /* 错误详情层：整屏覆盖弹窗（error-detail.html），fixed 保证滚动内容之上 */
-    .detail-layer { position: fixed; inset: 0; z-index: 20; background: #fff; display: flex; flex-direction: column; overflow-y: auto; }
+    .detail-layer { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: flex; flex-direction: column; overflow-y: auto; }
     .detail-head { display: flex; align-items: center; padding: 12px 16px; }
     .detail-head .back { border: none; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 6px 2px 0; font-family: inherit; }
     .detail-head .back:hover { color: var(--ink); }
@@ -64,7 +76,7 @@
     .err-mono .bad { color: var(--err); }
     .checklist { margin: 14px 16px 0; border-top: 1px solid var(--line); }
     .checklist .ck { display: flex; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line-soft); font-size: 12px; line-height: 1.7; }
-    .checklist .ck .n { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #dcdcd6; color: var(--muted); font-size: 10px; text-align: center; line-height: 15px; margin-top: 2px; }
+    .checklist .ck .n { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); font-size: 10px; text-align: center; line-height: 15px; margin-top: 2px; }
     .checklist .ck b { font-weight: 600; }
     .checklist .ck .sub { color: var(--muted); }
     .copy-err { margin: 0 16px; padding: 10px 0 0; }
@@ -103,13 +115,14 @@
 
     /* 底部动作 */
     .foot { padding: 18px 16px 16px; text-align: center; }
-    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; }
-    .big-btn:hover { background: #2c2d30; }
-    .big-btn:disabled { background: #e8e8e4; color: var(--faint); cursor: default; }
+    .big-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px; background: var(--btn-bg); color: var(--btn-fg); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; }
+    .big-btn:hover { background: var(--btn-hover); }
+    .big-btn:disabled { background: var(--btn-disabled-bg); color: var(--faint); cursor: default; }
     .minilink { display: inline-block; margin-top: 10px; border: none; background: none; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; }
     .minilink:hover { color: var(--ink); }
   </style>
   <link rel="stylesheet" href="loading.css">
+  <script src="theme.js"></script>
 </head>
 <body>
   <div class="top">
