@@ -296,10 +296,10 @@ chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'au
   autoCopyField = savedAutoCopy
   renderChips(fields)
   const order = cfg.order === 'top' ? 'top' : 'bottom'
-  document.getElementById('orderSelect').value = order
+  setOrderSelection(order)
   autoFetchInput.checked = cfg.autoFetch !== false
   const openMode = cfg.defaultOpenMode === 'panel' ? 'panel' : 'popup'
-  document.getElementById('openModeSelect').value = openMode
+  setOpenModeSelection(openMode)
   const theme = cfg.theme === 'light' || cfg.theme === 'dark' ? cfg.theme : 'auto'
   setThemeSelection(theme)
   contextMenuPasteInput.checked = cfg.contextMenuPaste === true
@@ -314,59 +314,69 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg && msg.type === 'config-updated') location.reload()
 })
 
-// ===== 行为开关与下拉选项：change 即写入原存储键（无保存按钮） =====
+// ===== 行为开关与分段控件：选中即写入原存储键（无保存按钮） =====
 autoFetchInput.addEventListener('change', () => {
   chrome.storage.local.set({ autoFetch: autoFetchInput.checked }, () => showToast('已保存', true))
 })
-const orderSelect = document.getElementById('orderSelect')
-orderSelect.addEventListener('change', () => {
-  chrome.storage.local.set({ order: orderSelect.value }, () => showToast('已保存', true))
-})
-const openModeSelect = document.getElementById('openModeSelect')
-openModeSelect.addEventListener('change', () => {
-  // background.js 监听该键即时切换弹窗/侧边栏
-  chrome.storage.local.set({ defaultOpenMode: openModeSelect.value }, () => showToast('已保存', true))
-})
-const themeSeg = document.getElementById('themeSeg')
-const themeBtns = Array.from(themeSeg.querySelectorAll('.seg-btn'))
 
-function setThemeSelection(theme) {
-  themeBtns.forEach((btn) => {
-    const on = btn.dataset.theme === theme
-    btn.setAttribute('aria-checked', String(on))
-    btn.tabIndex = on ? 0 : -1
+// 分段控件按单选组处理：点击选中，左右方向键循环，Home / End 跳首尾
+function createSegmented(id, onChange) {
+  const seg = document.getElementById(id)
+  const btns = Array.from(seg.querySelectorAll('.seg-btn'))
+
+  function set(value) {
+    btns.forEach((btn) => {
+      const on = btn.dataset.value === value
+      btn.setAttribute('aria-checked', String(on))
+      btn.tabIndex = on ? 0 : -1
+    })
+  }
+
+  function select(value) {
+    if (!btns.some((btn) => btn.dataset.value === value)) return
+    const current = seg.querySelector('[aria-checked="true"]')
+    if (current && current.dataset.value === value) return
+    set(value)
+    onChange(value)
+  }
+
+  seg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn')
+    if (btn) select(btn.dataset.value)
   })
+
+  seg.addEventListener('keydown', (e) => {
+    const idx = btns.indexOf(document.activeElement)
+    if (idx < 0) return
+    let next = null
+    if (e.key === 'ArrowLeft') next = (idx + btns.length - 1) % btns.length
+    else if (e.key === 'ArrowRight') next = (idx + 1) % btns.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = btns.length - 1
+    if (next === null) return
+    e.preventDefault()
+    btns[next].focus()
+    select(btns[next].dataset.value)
+  })
+
+  return set
 }
 
-function selectTheme(theme) {
-  if (!themeBtns.some((btn) => btn.dataset.theme === theme)) return
-  const current = themeSeg.querySelector('[aria-checked="true"]')
-  if (current && current.dataset.theme === theme) return
-  setThemeSelection(theme)
+const setOrderSelection = createSegmented('orderSeg', (value) => {
+  chrome.storage.local.set({ order: value }, () => showToast('已保存', true))
+})
+const setOpenModeSelection = createSegmented('openModeSeg', (value) => {
+  // background.js 监听该键即时切换弹窗/侧边栏
+  chrome.storage.local.set({ defaultOpenMode: value }, () => showToast('已保存', true))
+})
+const setThemeSelection = createSegmented('themeSeg', (value) => {
   // theme.js 监听该键即时切换所有扩展页面的主题
-  chrome.storage.local.set({ theme }, () => showToast('已保存', true))
-}
-
-themeSeg.addEventListener('click', (e) => {
-  const btn = e.target.closest('.seg-btn')
-  if (btn) selectTheme(btn.dataset.theme)
+  chrome.storage.local.set({ theme: value }, () => showToast('已保存', true))
 })
 
-// 分段控件按单选组处理：左右方向键切换，Home / End 跳到首尾
-themeSeg.addEventListener('keydown', (e) => {
-  const idx = themeBtns.indexOf(document.activeElement)
-  if (idx < 0) return
-  let next = null
-  if (e.key === 'ArrowLeft') next = (idx + themeBtns.length - 1) % themeBtns.length
-  else if (e.key === 'ArrowRight') next = (idx + 1) % themeBtns.length
-  else if (e.key === 'Home') next = 0
-  else if (e.key === 'End') next = themeBtns.length - 1
-  if (next === null) return
-  e.preventDefault()
-  themeBtns[next].focus()
-  selectTheme(themeBtns[next].dataset.theme)
-})
-
+// 首屏先给默认值，storage 回调到达后按实际配置校正
+setOrderSelection('bottom')
+setOpenModeSelection('popup')
 setThemeSelection('auto')
 
 // ===== 配置迁移弹层：两个入口（配置链接 / 云端数据），层内动作按钮沿用原有 id 与处理器 =====

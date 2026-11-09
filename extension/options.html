@@ -114,16 +114,16 @@
     input, select { width: 100%; padding: 9px 11px; font-size: 13px; border: 1px solid var(--input-border); border-radius: 10px; color: var(--ink); font-family: inherit; background: var(--input-bg); }
     /* select 与胶囊按钮视觉协调：同高 32px，但保留输入系外观（10px 圆角，不做按钮样式） */
     select { height: 32px; padding-top: 0; padding-bottom: 0; }
-    /* 主题分段控件：三档胶囊；亮色下选中为白底浮起，暗色下选中为黄底，和海报中的切换器一致 */
-    .theme-seg { display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 999px; vertical-align: middle; }
-    .theme-seg .seg-btn { margin: 0; height: 26px; padding: 0 12px; border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: none; transition: background .18s ease, color .18s ease, box-shadow .18s ease; }
-    .theme-seg .seg-btn:hover { background: var(--line); color: var(--ink); }
-    .theme-seg .seg-btn:not([aria-checked="true"]):active { background: var(--press-bg); }
-    .theme-seg .seg-btn[aria-checked="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(23, 24, 26, .1), 0 0 0 1px var(--input-border); }
-    .theme-seg .seg-btn[aria-checked="true"]:hover { background: var(--card); color: var(--ink); }
-    :root[data-theme="dark"] .theme-seg .seg-btn[aria-checked="true"] { background: var(--accent); color: #17181a; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
-    :root[data-theme="dark"] .theme-seg .seg-btn[aria-checked="true"]:hover { background: var(--accent); color: #17181a; }
-    @media (prefers-reduced-motion: reduce) { .theme-seg .seg-btn { transition: none; } }
+    /* 分段控件（主题 / 排序 / 打开方式通用）：亮色下选中为白底浮起，暗色下选中为黄底，和海报中的切换器一致 */
+    .seg { display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 999px; vertical-align: middle; }
+    .seg .seg-btn { margin: 0; height: 26px; padding: 0 12px; border-radius: 999px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; box-shadow: none; transition: background .18s ease, color .18s ease, box-shadow .18s ease; }
+    .seg .seg-btn:hover { background: var(--line); color: var(--ink); }
+    .seg .seg-btn:not([aria-checked="true"]):active { background: var(--press-bg); }
+    .seg .seg-btn[aria-checked="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(23, 24, 26, .1), 0 0 0 1px var(--input-border); }
+    .seg .seg-btn[aria-checked="true"]:hover { background: var(--card); color: var(--ink); }
+    :root[data-theme="dark"] .seg .seg-btn[aria-checked="true"] { background: var(--accent); color: #17181a; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+    :root[data-theme="dark"] .seg .seg-btn[aria-checked="true"]:hover { background: var(--accent); color: #17181a; }
+    @media (prefers-reduced-motion: reduce) { .seg .seg-btn { transition: none; } }
     input:focus, select:focus { outline: none; border-color: var(--ink); }
     input[type="radio"], input[type="checkbox"]:not(.switch) { width: auto; margin: 0 6px 0 0; }
     /* ===== 按钮令牌（全页唯一体系）：胶囊 999px · 高 32px · 字号 12px · 字重 600 · hover/active 变底色 · focus-visible 黄描边
@@ -236,19 +236,19 @@
       <label class="f-row" for="charByCharPaste"><span class="nm">逐字形式粘贴</span><input id="charByCharPaste" type="checkbox" class="switch"></label>
       <div class="tip" id="charByCharPasteTip">逐字依次填入，增强对填写验证码场景的支持。</div>
     </div>
-    <div class="f-row"><span class="nm">最新一条数据的位置</span><span class="v">
-      <select id="orderSelect">
-        <option value="bottom">底部</option>
-        <option value="top">顶部</option>
-      </select>
-    </span></div>
+    <div class="f-row"><span class="nm">最新一条数据的位置</span><div class="v">
+      <div class="seg" id="orderSeg" role="radiogroup" aria-label="最新一条数据的位置">
+        <button type="button" class="seg-btn" role="radio" aria-checked="true" data-value="bottom">底部</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-value="top">顶部</button>
+      </div>
+    </div></div>
     <div class="tip">若开启了按时间倒序自动排序时请选「顶部」</div>
-    <div class="f-row"><span class="nm">点击扩展图标时打开</span><span class="v">
-      <select id="openModeSelect">
-        <option value="popup">弹窗</option>
-        <option value="panel">侧栏</option>
-      </select>
-    </span></div>
+    <div class="f-row"><span class="nm">点击扩展图标时打开</span><div class="v">
+      <div class="seg" id="openModeSeg" role="radiogroup" aria-label="点击扩展图标时打开">
+        <button type="button" class="seg-btn" role="radio" aria-checked="true" data-value="popup">弹窗</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-value="panel">侧栏</button>
+      </div>
+    </div></div>
     <div class="tip">浏览器不支持侧边栏时会自动改用弹窗</div>
   </section>
 
@@ -256,10 +256,10 @@
   <section class="sect" id="sectAppearance">
     <div class="s-label">外观</div>
     <div class="f-row"><span class="nm">主题</span><div class="v">
-      <div class="theme-seg" id="themeSeg" role="radiogroup" aria-label="主题">
-        <button type="button" class="seg-btn" role="radio" aria-checked="true" data-theme="auto">跟随系统</button>
-        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-theme="light">亮色</button>
-        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-theme="dark">暗色</button>
+      <div class="seg" id="themeSeg" role="radiogroup" aria-label="主题">
+        <button type="button" class="seg-btn" role="radio" aria-checked="true" data-value="auto">跟随系统</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-value="light">亮色</button>
+        <button type="button" class="seg-btn" role="radio" aria-checked="false" data-value="dark">暗色</button>
       </div>
     </div></div>
     <div class="tip">「跟随系统」会随操作系统的深浅色设置自动切换</div>
