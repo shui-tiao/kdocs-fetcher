@@ -301,7 +301,7 @@ chrome.storage.local.get(['webhookUrl', 'token', 'sheet', 'fields', 'order', 'au
   const openMode = cfg.defaultOpenMode === 'panel' ? 'panel' : 'popup'
   document.getElementById('openModeSelect').value = openMode
   const theme = cfg.theme === 'light' || cfg.theme === 'dark' ? cfg.theme : 'auto'
-  document.getElementById('themeSelect').value = theme
+  setThemeSelection(theme)
   contextMenuPasteInput.checked = cfg.contextMenuPaste === true
   charByCharPasteInput.checked = cfg.charByCharPaste === true
   updateContextMenuPasteUI()
@@ -327,11 +327,47 @@ openModeSelect.addEventListener('change', () => {
   // background.js 监听该键即时切换弹窗/侧边栏
   chrome.storage.local.set({ defaultOpenMode: openModeSelect.value }, () => showToast('已保存', true))
 })
-const themeSelect = document.getElementById('themeSelect')
-themeSelect.addEventListener('change', () => {
+const themeSeg = document.getElementById('themeSeg')
+const themeBtns = Array.from(themeSeg.querySelectorAll('.seg-btn'))
+
+function setThemeSelection(theme) {
+  themeBtns.forEach((btn) => {
+    const on = btn.dataset.theme === theme
+    btn.setAttribute('aria-checked', String(on))
+    btn.tabIndex = on ? 0 : -1
+  })
+}
+
+function selectTheme(theme) {
+  if (!themeBtns.some((btn) => btn.dataset.theme === theme)) return
+  const current = themeSeg.querySelector('[aria-checked="true"]')
+  if (current && current.dataset.theme === theme) return
+  setThemeSelection(theme)
   // theme.js 监听该键即时切换所有扩展页面的主题
-  chrome.storage.local.set({ theme: themeSelect.value }, () => showToast('已保存', true))
+  chrome.storage.local.set({ theme }, () => showToast('已保存', true))
+}
+
+themeSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg-btn')
+  if (btn) selectTheme(btn.dataset.theme)
 })
+
+// 分段控件按单选组处理：左右方向键切换，Home / End 跳到首尾
+themeSeg.addEventListener('keydown', (e) => {
+  const idx = themeBtns.indexOf(document.activeElement)
+  if (idx < 0) return
+  let next = null
+  if (e.key === 'ArrowLeft') next = (idx + themeBtns.length - 1) % themeBtns.length
+  else if (e.key === 'ArrowRight') next = (idx + 1) % themeBtns.length
+  else if (e.key === 'Home') next = 0
+  else if (e.key === 'End') next = themeBtns.length - 1
+  if (next === null) return
+  e.preventDefault()
+  themeBtns[next].focus()
+  selectTheme(themeBtns[next].dataset.theme)
+})
+
+setThemeSelection('auto')
 
 // ===== 配置迁移弹层：两个入口（配置链接 / 云端数据），层内动作按钮沿用原有 id 与处理器 =====
 function bindMigrationLayer(openBtnId, layerId) {
